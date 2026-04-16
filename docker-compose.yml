@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   db:
     image: postgres:16-alpine
@@ -9,8 +7,30 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD required}
     volumes:
       - pgdata:/var/lib/postgresql/data
+      - pgssl:/etc/postgres-ssl
     ports:
       - "127.0.0.1:5432:5432"
+    # Generate a self-signed cert on first boot and enable SSL, because
+    # the Node server forces ssl:{} in NODE_ENV=production. Certs live
+    # outside the data dir so initdb doesn't see them as "dir not empty".
+    command:
+      - sh
+      - -c
+      - |
+        set -e
+        CRT=/etc/postgres-ssl/server.crt
+        KEY=/etc/postgres-ssl/server.key
+        if [ ! -f "$$CRT" ]; then
+          apk add --no-cache openssl >/dev/null
+          openssl req -new -x509 -days 3650 -nodes -text \
+            -out "$$CRT" -keyout "$$KEY" -subj '/CN=db' >/dev/null 2>&1
+        fi
+        chmod 600 "$$KEY"
+        chown 70:70 "$$CRT" "$$KEY"
+        exec docker-entrypoint.sh postgres \
+          -c ssl=on \
+          -c ssl_cert_file="$$CRT" \
+          -c ssl_key_file="$$KEY"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-gymquest}"]
       interval: 5s
@@ -38,3 +58,4 @@ services:
 
 volumes:
   pgdata:
+  pgssl:

@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Gym Quest</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=DM+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0c0e14;--card:#13161f;--card2:#181c27;--brd:#1e2231;--txt:#e2e8f0;--mut:#64748b;--acc:#2E86C1;--cyan:#00e5ff;--grn:#22c55e;--red:#ef4444;--org:#f59e0b;--hero:#00e5ff}
+body{background:var(--bg);color:var(--txt);font-family:'DM Sans',sans-serif;min-height:100vh;-webkit-tap-highlight-color:transparent}
+.orb{font-family:'Orbitron',monospace}.mono{font-family:'JetBrains Mono',monospace}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+@keyframes glow{0%,100%{box-shadow:0 0 8px var(--hero)22}50%{box-shadow:0 0 20px var(--hero)44}}
+.fade{animation:fadeIn .4s ease}
+input{width:100%;padding:12px 16px;background:var(--card);border:1px solid var(--brd);border-radius:10px;color:var(--txt);font-family:'DM Sans';font-size:14px;outline:none;margin-bottom:10px}
+input:focus{border-color:var(--cyan)}
+input[type=number]{width:55px;padding:8px;text-align:center;margin:0;font-family:'JetBrains Mono';font-size:13px;border-radius:8px;-moz-appearance:textfield}
+input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appearance:none}
+.btn{width:100%;padding:14px;border:none;border-radius:12px;cursor:pointer;font-family:'Orbitron';font-size:13px;font-weight:700;letter-spacing:1px;background:var(--cyan);color:#000;margin-bottom:12px}
+.btn:active{transform:scale(.97)}.btn:disabled{opacity:.4}
+.btn-sec{background:var(--card2);color:var(--acc);border:1px solid var(--acc)}
+.btn-red{background:rgba(239,68,68,.1);color:var(--red)}
+.card{background:var(--card);border:1px solid var(--brd);border-radius:14px;padding:16px;margin-bottom:10px}
+.screen{display:none;padding:20px 16px 100px}.screen.active{display:block}
+.tabs{position:fixed;bottom:0;left:0;right:0;background:rgba(10,10,15,.97);backdrop-filter:blur(20px);border-top:1px solid var(--brd);display:flex;justify-content:space-around;padding:6px 0 12px;z-index:100}
+.tab{display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;opacity:.35;transition:.2s;padding:4px 8px}.tab.on{opacity:1}
+.tab .icon{font-size:20px}.tab .lbl{font-size:9px;font-weight:600}
+.toast{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:200;padding:14px 24px;border-radius:14px;font-family:'Orbitron';font-size:12px;font-weight:700;text-align:center;max-width:92%;animation:fadeIn .3s;display:none;box-shadow:0 8px 30px rgba(0,0,0,.5)}
+.hp{text-align:center;padding:10px 4px;border-radius:12px;cursor:pointer;border:2px solid var(--brd);transition:.2s}
+.hp.on{border-color:var(--hero);background:rgba(0,229,255,.08);animation:glow 2s infinite}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:150;display:flex;align-items:flex-end;justify-content:center}
+.modal{background:var(--bg);border-top:1px solid var(--brd);border-radius:20px 20px 0 0;padding:24px 20px 40px;width:100%;max-height:80vh;overflow-y:auto;animation:slideUp .3s ease}
+.sm{text-align:center;padding:12px 6px}
+.sm .v{font-family:'JetBrains Mono';font-size:16px;font-weight:700}
+.sm .l{font-size:10px;color:var(--mut);margin-top:2px}
+</style>
+</head>
+<body>
+<div id="toast" class="toast"></div>
+
+<div id="auth" class="screen active fade" style="display:flex;min-height:100vh;flex-direction:column;align-items:center;justify-content:center;padding:20px">
+<div class="orb" style="font-size:32px;font-weight:900;color:var(--cyan);text-shadow:0 0 30px rgba(0,229,255,.25)">GYM QUEST</div>
+<div style="font-size:11px;color:var(--mut);letter-spacing:3px;margin:6px 0 36px">RPG FITNESS ENGINE</div>
+<div style="width:100%;max-width:340px">
+<input id="a-club" placeholder="Club ID">
+<div id="a-nr" style="display:none"><input id="a-name" placeholder="Имя"></div>
+<input id="a-email" placeholder="Email" type="email">
+<input id="a-pass" placeholder="Пароль" type="password">
+<div id="a-heroes" style="display:none;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px">
+<div class="hp on" data-h="warrior" onclick="pH('warrior')"><div style="font-size:26px">&#9876;&#65039;</div><div class="mono" style="font-size:9px;margin-top:4px;color:var(--hero)">Воин</div></div>
+<div class="hp" data-h="runner" onclick="pH('runner')"><div style="font-size:26px">&#9889;</div><div class="mono" style="font-size:9px;margin-top:4px">Бегун</div></div>
+<div class="hp" data-h="monk" onclick="pH('monk')"><div style="font-size:26px">&#129496;</div><div class="mono" style="font-size:9px;margin-top:4px">Монах</div></div>
+<div class="hp" data-h="titan" onclick="pH('titan')"><div style="font-size:26px">&#128293;</div><div class="mono" style="font-size:9px;margin-top:4px">Титан</div></div>
+</div>
+<div id="a-err" style="color:var(--red);font-size:12px;text-align:center;margin-bottom:10px;display:none"></div>
+<button class="btn" onclick="doAuth()">ВОЙТИ</button>
+<div style="text-align:center"><span id="a-tgl" style="color:var(--acc);font-size:13px;cursor:pointer" onclick="tglAuth()">Нет аккаунта? Регистрация</span></div>
+</div></div>
+
+<div id="app" style="display:none">
+<div id="s-home" class="screen active fade">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+<div><div style="font-size:11px;color:var(--mut)">Добро пожаловать</div><div class="orb" style="font-size:20px;font-weight:700;margin-top:2px" id="h-name"></div></div>
+<div id="h-av" style="width:48px;height:48px;border-radius:50%;border:2px solid var(--hero);display:flex;align-items:center;justify-content:center;font-size:24px;background:rgba(0,229,255,.05)"></div></div>
+<div class="card" style="position:relative;overflow:hidden">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+<div><div class="mono" style="font-size:10px;color:var(--hero);letter-spacing:2px">УРОВЕНЬ <span id="h-lv"></span></div>
+<div class="orb" style="font-size:22px;font-weight:900;margin-top:4px" id="h-cls"></div></div>
+<div class="mono" style="font-size:11px;color:var(--mut)"><span id="h-xp"></span>/<span id="h-xpn"></span></div></div>
+<div style="height:6px;background:rgba(255,255,255,.04);border-radius:3px;overflow:hidden"><div id="h-bar" style="height:100%;border-radius:3px;background:linear-gradient(90deg,var(--hero),var(--hero)66);transition:width 1s"></div></div></div>
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:14px">
+<div class="card sm"><div style="font-size:15px">&#128293;</div><div class="v" id="h-str"></div><div class="l">Серия</div></div>
+<div class="card sm"><div style="font-size:15px">&#128170;</div><div class="v" id="h-tw"></div><div class="l">Трен-ки</div></div>
+<div class="card sm"><div style="font-size:15px">&#127947;</div><div class="v" id="h-ton"></div><div class="l">Тоннаж</div></div>
+<div class="card sm"><div style="font-size:15px">&#9201;</div><div class="v" id="h-min"></div><div class="l">Минут</div></div></div>
+<div onclick="startW()" style="background:linear-gradient(135deg,var(--hero)12,var(--hero)05);border:1px solid var(--hero)33;border-radius:16px;padding:20px;text-align:center;cursor:pointer;margin-bottom:10px">
+<div class="orb" style="font-size:18px;font-weight:900">НАЧАТЬ ТРЕНИРОВКУ</div>
+<div style="font-size:12px;color:var(--mut);margin-top:6px">Собери тренировку из упражнений</div></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+<div onclick="doCI()" class="card" style="text-align:center;cursor:pointer;padding:14px"><div style="font-size:22px;margin-bottom:4px">&#128205;</div><div style="font-size:12px;font-weight:600">Быстрый чекин</div></div>
+<div onclick="sT('board')" class="card" style="text-align:center;cursor:pointer;padding:14px"><div style="font-size:22px;margin-bottom:4px">&#127942;</div><div style="font-size:12px;font-weight:600">Рейтинг</div></div></div></div>
+
+<div id="s-workout" class="screen fade">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+<div class="orb" style="font-size:16px;font-weight:700">Тренировка</div>
+<div class="mono" id="w-tmr" style="font-size:14px;color:var(--hero)">00:00</div></div>
+<div id="w-exs"></div>
+<div onclick="openLib()" style="border:2px dashed var(--brd);border-radius:12px;padding:16px;text-align:center;cursor:pointer;margin-bottom:12px"><div style="font-size:20px">&#10133;</div><div style="font-size:13px;color:var(--mut);margin-top:4px">Добавить упражнение</div></div>
+<div class="card" style="display:flex;justify-content:space-around;text-align:center">
+<div><div class="mono" style="font-size:16px;font-weight:700" id="w-ts">0</div><div style="font-size:10px;color:var(--mut)">Подходов</div></div>
+<div><div class="mono" style="font-size:16px;font-weight:700" id="w-tt">0</div><div style="font-size:10px;color:var(--mut)">Тоннаж</div></div>
+<div><div class="mono" style="font-size:16px;font-weight:700" id="w-te">0</div><div style="font-size:10px;color:var(--mut)">Упр-ий</div></div></div>
+<button class="btn" onclick="finW()" style="margin-top:12px">ЗАВЕРШИТЬ</button>
+<button class="btn btn-red" onclick="canW()" style="font-size:11px;padding:10px">Отменить</button>
+<div class="mono" style="font-size:11px;color:var(--hero);letter-spacing:2px;margin-top:20px;margin-bottom:10px">ИСТОРИЯ</div>
+<div id="w-hist"></div></div>
+
+<div id="s-board" class="screen fade">
+<div class="orb" style="font-size:18px;font-weight:700;margin-bottom:20px">Рейтинг</div>
+<div id="lb"></div></div>
+
+<div id="s-profile" class="screen fade">
+<div style="text-align:center;margin-bottom:24px">
+<div id="p-av" style="width:80px;height:80px;border-radius:50%;margin:0 auto 12px;border:3px solid var(--hero);display:flex;align-items:center;justify-content:center;font-size:38px;background:rgba(0,229,255,.05)"></div>
+<div class="orb" style="font-size:20px;font-weight:900" id="p-name"></div>
+<div class="mono" style="font-size:12px;color:var(--hero);margin-top:4px" id="p-sub"></div></div>
+<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:20px">
+<div class="card sm"><div class="v" id="p-tw"></div><div class="l">Тренировок</div></div>
+<div class="card sm"><div class="v" id="p-min"></div><div class="l">Минут</div></div>
+<div class="card sm"><div class="v" id="p-ton"></div><div class="l">Тоннаж</div></div>
+<div class="card sm"><div class="v" id="p-ms"></div><div class="l">Макс. серия</div></div></div>
+<div class="mono" style="font-size:11px;color:var(--hero);letter-spacing:2px;margin-bottom:12px">ДОСТИЖЕНИЯ</div>
+<div id="p-ach" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:24px"></div>
+<button class="btn btn-red" onclick="out()" style="font-size:11px;padding:10px">Выйти</button></div>
+
+<div class="tabs">
+<div class="tab on" data-t="home" onclick="sT('home')"><div class="icon">&#127968;</div><div class="lbl">Главная</div></div>
+<div class="tab" data-t="workout" onclick="sT('workout')"><div class="icon">&#128170;</div><div class="lbl">Трен-ка</div></div>
+<div class="tab" data-t="board" onclick="sT('board')"><div class="icon">&#127942;</div><div class="lbl">Рейтинг</div></div>
+<div class="tab" data-t="profile" onclick="sT('profile')"><div class="icon">&#128100;</div><div class="lbl">Профиль</div></div></div>
+</div>
+
+<div id="lib-m" class="modal-bg" style="display:none" onclick="if(event.target===this)clLib()">
+<div class="modal">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+<div class="orb" style="font-size:14px;font-weight:700">Упражнения</div>
+<div onclick="clLib()" style="font-size:24px;cursor:pointer;color:var(--mut)">&#10005;</div></div>
+<input id="lib-s" placeholder="Поиск..." oninput="fLib()">
+<div id="lib-l" style="max-height:50vh;overflow-y:auto"></div>
+<div style="margin-top:12px;border-top:1px solid var(--brd);padding-top:12px">
+<input id="lib-c" placeholder="Своё упражнение">
+<button class="btn btn-sec" onclick="addC()">Добавить</button></div></div></div>
+
+<script>
+const EM={warrior:"\u2694\ufe0f",runner:"\u26a1",monk:"\ud83e\uddd8",titan:"\ud83d\udd25"};
+const CL={warrior:"#ff3d3d",runner:"#00e5ff",monk:"#b388ff",titan:"#ff9100"};
+const XL=[0,500,1200,2100,3200,4500,6000,7800,9900,12500];
+const LIB=[
+{c:"Грудь",i:["Жим лёжа","Жим гантелей","Разведение гантелей","Отжимания","Жим в Смите","Кроссовер"]},
+{c:"Спина",i:["Становая тяга","Подтягивания","Тяга штанги в наклоне","Тяга верхнего блока","Тяга гантели","Гиперэкстензия"]},
+{c:"Ноги",i:["Присед","Жим ногами","Выпады","Румынская тяга","Разгибание ног","Сгибание ног"]},
+{c:"Плечи",i:["Жим стоя","Жим Арнольда","Махи в стороны","Тяга к подбородку","Обратные разведения"]},
+{c:"Руки",i:["Подъём на бицепс","Молотковые сгибания","Французский жим","Разгибание на блоке"]},
+{c:"Кор",i:["Планка","Скручивания","Подъём ног","Русский твист"]},
+{c:"Кардио",i:["Бег","Велотренажёр","Эллипс","Гребной тренажёр","Скакалка","Берпи"]}];
+
+let tk=localStorage.getItem("hq_token"),cid=localStorage.getItem("hq_club"),am="login",hc="warrior",P=null,AA=[],W=[],wSt=null,wTi=null;
+
+async function ap(p,o={}){const r=await fetch("/api"+p,{...o,headers:{"Content-Type":"application/json",...(tk?{Authorization:"Bearer "+tk}:{})},body:o.body?JSON.stringify(o.body):undefined});if(!r.ok){const e=await r.json().catch(()=>({error:"Err"}));throw new Error(e.error)}return r.json()}
+
+function ts(m,c){const t=document.getElementById("toast");t.innerHTML=m;t.style.background=c||"var(--cyan)";t.style.color=(c==="var(--red)")?"#fff":"#000";t.style.display="block";setTimeout(()=>t.style.display="none",4000)}
+function fn(n){return n>=10000?(n/1000).toFixed(0)+"k":n>=1000?(n/1000).toFixed(1)+"k":Math.round(n)}
+
+function tglAuth(){am=am==="login"?"register":"login";document.getElementById("a-nr").style.display=am==="register"?"block":"none";document.getElementById("a-heroes").style.display=am==="register"?"grid":"none";document.getElementById("a-tgl").textContent=am==="register"?"Уже есть? Войти":"Нет аккаунта? Регистрация"}
+function pH(h){hc=h;document.querySelectorAll(".hp").forEach(e=>{const on=e.dataset.h===h;e.classList.toggle("on",on);e.querySelector(".mono").style.color=on?CL[h]:"var(--mut)"});document.documentElement.style.setProperty("--hero",CL[h])}
+
+async function doAuth(){const cl=document.getElementById("a-club").value.trim(),em=document.getElementById("a-email").value.trim(),pw=document.getElementById("a-pass").value,er=document.getElementById("a-err");er.style.display="none";try{let r;if(am==="register"){const nm=document.getElementById("a-name").value.trim();if(!cl||!em||!pw||!nm)throw new Error("Заполните все поля");r=await ap("/members/register",{method:"POST",body:{club_id:cl,email:em,password:pw,name:nm,hero_class:hc}})}else{if(!cl||!em||!pw)throw new Error("Заполните все поля");r=await ap("/members/login",{method:"POST",body:{club_id:cl,email:em,password:pw}})}tk=r.token;cid=r.club_id||cl;localStorage.setItem("hq_token",tk);localStorage.setItem("hq_club",cid);go()}catch(e){er.textContent=e.message;er.style.display="block"}}
+
+async function go(){document.getElementById("auth").style.display="none";document.getElementById("app").style.display="block";try{[P,AA]=await Promise.all([ap("/me"),ap("/achievements")]);document.documentElement.style.setProperty("--hero",CL[P.hero]||"#00e5ff");rH();rP();lB();lHi()}catch(e){out()}}
+
+function rH(){if(!P)return;const h=P;document.getElementById("h-name").textContent=h.name;document.getElementById("h-av").textContent=EM[h.hero];document.getElementById("h-lv").textContent=h.level;document.getElementById("h-cls").textContent=h.hero_info?.name||h.hero;document.getElementById("h-xp").textContent=h.xp;document.getElementById("h-xpn").textContent=h.xp_next;document.getElementById("h-str").textContent=h.streak;document.getElementById("h-tw").textContent=h.total_w;document.getElementById("h-ton").textContent=fn(h.total_ton);document.getElementById("h-min").textContent=h.total_min;const pv=XL[h.level-1]||0;document.getElementById("h-bar").style.width=Math.min(100,Math.max(2,(h.xp-pv)/(h.xp_next-pv)*100))+"%"}
+
+function rP(){if(!P)return;document.getElementById("p-av").textContent=EM[P.hero];document.getElementById("p-name").textContent=P.name;document.getElementById("p-sub").textContent="Ур."+P.level+" \u2022 "+P.xp+" XP";document.getElementById("p-tw").textContent=P.total_w;document.getElementById("p-min").textContent=P.total_min;document.getElementById("p-ton").textContent=Math.round(P.total_ton)+"кг";document.getElementById("p-ms").textContent=P.max_streak+"дн";const ul=(P.achievements||[]).map(a=>a.ach_id);document.getElementById("p-ach").innerHTML=AA.map(a=>{const d=ul.includes(a.id);return'<div class="card" style="text-align:center;padding:10px 4px;opacity:'+(d?1:.3)+";"+(d?"border-color:var(--hero);background:rgba(0,229,255,.05)":"")+'"><div style="font-size:20px">'+(d?"\ud83c\udfc5":"\ud83d\udd12")+'</div><div class="mono" style="font-size:8px;font-weight:700;margin-top:2px">'+a.name+'</div><div style="font-size:7px;color:var(--mut)">'+a.desc+"</div></div>"}).join("")}
+
+async function lB(){if(!cid)return;try{const lb=await ap("/leaderboard/"+cid);document.getElementById("lb").innerHTML=lb.length?lb.map((m,i)=>{const md=i<3?["\ud83e\udd47","\ud83e\udd48","\ud83e\udd49"][i]:"#"+(i+1);return'<div style="display:flex;align-items:center;gap:10px;padding:12px;border-radius:12px;margin-bottom:6px;'+(m.is_you?"background:rgba(0,229,255,.05);border:1px solid rgba(0,229,255,.2)":"border:1px solid transparent")+'"><div class="mono" style="font-size:14px;font-weight:900;width:28px;text-align:center">'+md+'</div><div style="font-size:22px">'+(EM[m.hero]||"\u2694\ufe0f")+'</div><div style="flex:1"><div style="font-size:13px;font-weight:600;'+(m.is_you?"color:var(--hero)":"")+'">'+m.name+(m.is_you?" (ты)":"")+'</div><div style="font-size:11px;color:var(--mut)">Ур.'+m.level+" \u2022 \ud83d\udd25"+m.streak+'</div></div><div class="mono" style="font-size:14px;font-weight:700;color:var(--hero)">'+m.xp+"</div></div>"}).join(""):'<div style="color:var(--mut);text-align:center;padding:40px">Пока нет данных</div>'}catch(e){}}
+
+async function lHi(){try{const h=await ap("/workouts/history?limit=15");document.getElementById("w-hist").innerHTML=h.length?h.map(w=>'<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--brd)"><div style="font-size:16px">'+(w.type==="strength"?"\ud83c\udfcb\ufe0f":"\ud83d\udccd")+'</div><div style="flex:1"><div style="font-size:13px">'+(w.type==="strength"?"Силовая":"Чекин")+'</div><div class="mono" style="font-size:10px;color:var(--mut)">'+w.date+" \u2022 "+w.mins+'мин</div></div><div class="mono" style="font-size:13px;font-weight:700;color:var(--hero)">+'+w.xp_earned+"</div></div>").join(""):'<div style="color:var(--mut);text-align:center;padding:20px">Начни первую тренировку!</div>'}catch(e){}}
+
+async function doCI(){try{const r=await ap("/workouts",{method:"POST",body:{duration_minutes:0,calories:0,type:"checkin",exercises:[]}});let m="\ud83d\udccd +"+r.xp_earned+" XP \u2022 \ud83d\udd25"+r.streak;if(r.level_up)m="\ud83c\udf89 LEVEL UP! "+m;if(r.new_achievements?.length)m+="<br>\ud83c\udfc5 "+r.new_achievements.map(a=>a.name).join(", ");ts(m,r.level_up?"var(--org)":undefined);P=await ap("/me");rH();rP();lB();lHi()}catch(e){ts(e.message,"var(--red)")}}
+
+function startW(){W=[];wSt=Date.now();rW();uWS();sT("workout");if(wTi)clearInterval(wTi);wTi=setInterval(()=>{const e=Math.floor((Date.now()-wSt)/1000);document.getElementById("w-tmr").textContent=String(Math.floor(e/60)).padStart(2,"0")+":"+String(e%60).padStart(2,"0")},1000)}
+function canW(){if(W.length&&!confirm("Отменить?"))return;W=[];if(wTi)clearInterval(wTi);document.getElementById("w-tmr").textContent="00:00";sT("home")}
+
+function rW(){document.getElementById("w-exs").innerHTML=W.map((ex,ei)=>'<div class="card" style="padding:12px;margin-bottom:8px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div style="font-size:14px;font-weight:600">'+ex.n+'</div><div onclick="rmEx('+ei+')" style="color:var(--red);font-size:18px;cursor:pointer">\u2715</div></div><div style="display:flex;gap:4px;margin-bottom:6px"><div style="flex:1;font-size:9px;color:var(--mut);text-align:center">\u2116</div><div style="width:55px;font-size:9px;color:var(--mut);text-align:center">Повт.</div><div style="width:65px;font-size:9px;color:var(--mut);text-align:center">Вес(кг)</div><div style="width:20px"></div></div>'+ex.s.map((s,si)=>'<div style="display:flex;gap:4px;margin-bottom:4px;align-items:center"><div class="mono" style="flex:1;text-align:center;font-size:11px;color:var(--mut)">'+(si+1)+'</div><input type="number" value="'+s.r+'" onchange="uS('+ei+","+si+",'r',this.value)" style="width:55px"><input type="number" value=""+s.w+'" onchange="uS('+ei+","+si+",'w',this.value)" style="width:65px"><div onclick="rmS("+ei+","+si+')" style="width:20px;text-align:center;color:var(--red);cursor:pointer;font-size:13px">\u2212</div></div>').join("")+'<div onclick="aS('+ei+')" style="text-align:center;padding:6px;color:var(--acc);font-size:12px;cursor:pointer;border:1px dashed var(--brd);border-radius:8px;margin-top:6px">+ подход</div></div>').join("");uWS()}
+
+function aS(i){const l=W[i].s[W[i].s.length-1]||{r:10,w:0};W[i].s.push({r:l.r,w:l.w});rW()}
+function rmS(i,j){if(W[i].s.length<=1)return;W[i].s.splice(j,1);rW()}
+function rmEx(i){W.splice(i,1);rW()}
+function uS(i,j,f,v){W[i].s[j][f]=parseFloat(v)||0;uWS()}
+function uWS(){let ts=0,tt=0;W.forEach(e=>e.s.forEach(s=>{ts++;tt+=s.r*s.w}));document.getElementById("w-ts").textContent=ts;document.getElementById("w-tt").textContent=fn(tt);document.getElementById("w-te").textContent=W.length}
+
+async function finW(){if(!W.length){ts("Добавь упражнение","var(--red)");return}const el=Math.max(Math.floor((Date.now()-wSt)/60000),1);if(wTi)clearInterval(wTi);const exs=W.map(e=>({name:e.n,sets:e.s.length,reps:Math.round(e.s.reduce((a,s)=>a+s.r,0)/e.s.length),weight_kg:Math.round(e.s.reduce((a,s)=>a+s.w,0)/e.s.length*10)/10}));try{const r=await ap("/workouts",{method:"POST",body:{duration_minutes:el,calories:Math.round(exs.length*30),type:"strength",exercises:exs}});let m="\ud83c\udfcb\ufe0f +"+r.xp_earned+" XP";if(r.tonnage>0)m+=" \u2022 "+fn(r.tonnage)+"кг";m+=" \u2022 \ud83d\udd25"+r.streak;if(r.level_up)m="\ud83c\udf89 LEVEL UP!<br>"+m;if(r.new_achievements?.length)m+="<br>\ud83c\udfc5 "+r.new_achievements.map(a=>a.name).join(", ");ts(m,r.level_up?"var(--org)":"var(--grn)");W=[];document.getElementById("w-tmr").textContent="00:00";P=await ap("/me");rH();rP();lB();lHi();sT("home")}catch(e){ts(e.message,"var(--red)")}}
+
+function openLib(){document.getElementById("lib-m").style.display="flex";document.getElementById("lib-s").value="";fLib()}
+function clLib(){document.getElementById("lib-m").style.display="none"}
+function fLib(){const f=document.getElementById("lib-s").value.toLowerCase();let h="";LIB.forEach(c=>{const it=c.i.filter(x=>!f||x.toLowerCase().includes(f));if(!it.length)return;h+='<div class="mono" style="font-size:10px;color:var(--mut);letter-spacing:1px;margin:10px 0 4px">'+c.c.toUpperCase()+"</div>";it.forEach(n=>{const has=W.some(e=>e.n===n);h+='<div onclick="'+(has?"":"aEx(\'"+n.replace(/'/g,"\\'")+"\')"")+" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:"+(has?"default":"pointer")+";opacity:"+(has?.35:1)+'"><div style="flex:1;font-size:13px">'+n+'</div><div style="font-size:12px;color:'+(has?"var(--grn)":"var(--cyan)")+'">'+(has?"\u2713":"+")+"</div></div>"})});document.getElementById("lib-l").innerHTML=h||'<div style="color:var(--mut);text-align:center;padding:20px">Не найдено</div>'}
+function aEx(n){W.push({n:n,s:[{r:10,w:0}]});clLib();rW();if(!wSt){wSt=Date.now();if(wTi)clearInterval(wTi);wTi=setInterval(()=>{const e=Math.floor((Date.now()-wSt)/1000);document.getElementById("w-tmr").textContent=String(Math.floor(e/60)).padStart(2,"0")+":"+String(e%60).padStart(2,"0")},1000)}}
+function addC(){const n=document.getElementById("lib-c").value.trim();if(!n)return;aEx(n);document.getElementById("lib-c").value=""}
+
+function sT(id){document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));document.getElementById("s-"+id).classList.add("active");document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("on",t.dataset.t===id))}
+function out(){tk=null;cid=null;localStorage.clear();location.reload()}
+if(tk){go()}
+</script>
+</body></html>

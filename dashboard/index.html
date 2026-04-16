@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Gym Quest — Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=DM+Sans:wght@300;400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}body{background:#0c0e14;color:#e2e8f0;font-family:'DM Sans',sans-serif;padding:20px 16px}
+.orb{font-family:'Orbitron',monospace}.mono{font-family:'JetBrains Mono',monospace}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}.fade{animation:fadeIn .4s ease}
+input{width:100%;padding:12px 16px;background:#13161f;border:1px solid #1e2231;border-radius:10px;color:#e2e8f0;font-size:14px;outline:none;margin-bottom:10px}
+.btn{width:100%;padding:13px;border:none;border-radius:10px;cursor:pointer;font-family:'Orbitron';font-size:13px;font-weight:700;background:#2E86C1;color:#fff;margin-bottom:12px}
+.card{background:#13161f;border:1px solid #1e2231;border-radius:14px;padding:16px;margin-bottom:10px}
+.tabs{display:flex;gap:4px;background:#13161f;border-radius:10px;padding:4px;margin-bottom:20px}
+.tab{flex:1;text-align:center;padding:10px 8px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;color:#64748b;transition:.2s}
+.tab.on{background:#2E86C1;color:#fff}
+.alert-row{display:flex;align-items:center;gap:12px;padding:12px 16px;border-left:3px solid #ef4444}
+.alert-row.med{border-color:#f59e0b}.alert-row.low{border-color:#00e5ff}
+.resolve-btn{padding:6px 14px;border-radius:8px;cursor:pointer;font-family:'JetBrains Mono';font-size:11px;font-weight:600;border:none;background:rgba(46,134,193,.15);color:#2E86C1}
+</style>
+</head>
+<body>
+
+<div id="d-auth" class="fade" style="min-height:80vh;display:flex;flex-direction:column;align-items:center;justify-content:center">
+  <div class="orb" style="font-size:22px;font-weight:900;color:#2E86C1;margin-bottom:6px">GYM QUEST</div>
+  <div style="font-size:12px;color:#64748b;letter-spacing:2px;margin-bottom:30px">DASHBOARD КЛУБА</div>
+  <div style="width:100%;max-width:340px">
+    <input id="d-email" placeholder="Email владельца">
+    <input id="d-pass" placeholder="Пароль" type="password">
+    <div id="d-err" style="color:#ef4444;font-size:12px;text-align:center;margin-bottom:10px;display:none"></div>
+    <button class="btn" onclick="dLogin()">ВОЙТИ</button>
+    <div style="text-align:center"><span id="d-toggle" style="color:#2E86C1;font-size:12px;cursor:pointer" onclick="dToggle()">Зарегистрировать клуб</span></div>
+    <div id="d-reg" style="display:none;margin-top:12px">
+      <input id="d-name" placeholder="Название клуба"><input id="d-slug" placeholder="Slug (eng, без пробелов)">
+      <input id="d-addr" placeholder="Адрес (опционально)">
+      <button class="btn" onclick="dRegister()">СОЗДАТЬ КЛУБ</button>
+    </div>
+  </div>
+</div>
+
+<div id="d-main" style="display:none" class="fade">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+    <div><div class="mono" style="font-size:11px;color:#2E86C1;letter-spacing:1.5px">GYM QUEST • DASHBOARD</div><div class="orb" style="font-size:20px;font-weight:700;margin-top:4px" id="d-club-name"></div></div>
+    <div style="padding:6px 14px;border-radius:8px;background:rgba(34,197,94,.1);font-family:'JetBrains Mono';font-size:11px;color:#22c55e;font-weight:600">● Online</div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab on" data-t="overview" onclick="dTab('overview')">Обзор</div>
+    <div class="tab" data-t="alerts" onclick="dTab('alerts')">Алерты <span id="alert-badge" style="margin-left:4px;background:#ef4444;color:#fff;font-size:10px;padding:1px 5px;border-radius:10px;font-family:'JetBrains Mono'"></span></div>
+    <div class="tab" data-t="members" onclick="dTab('members')">Участники</div>
+    <div class="tab" data-t="qr" onclick="dTab('qr')">QR</div>
+    <div class="tab" data-t="seasons" onclick="dTab('seasons')">Сезоны</div>
+  </div>
+
+  <div id="dt-overview" class="fade">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+      <div class="card" style="text-align:center"><div class="mono" style="font-size:24px;font-weight:700" id="k-total"></div><div style="font-size:10px;color:#64748b;margin-top:4px">Всего участников</div></div>
+      <div class="card" style="text-align:center"><div class="mono" style="font-size:24px;font-weight:700;color:#22c55e" id="k-active"></div><div style="font-size:10px;color:#64748b;margin-top:4px">Активны (неделя)</div></div>
+      <div class="card" style="text-align:center"><div class="mono" style="font-size:24px;font-weight:700" id="k-wm"></div><div style="font-size:10px;color:#64748b;margin-top:4px">Тренировок (месяц)</div></div>
+      <div class="card" style="text-align:center"><div class="mono" style="font-size:24px;font-weight:700;color:#00e5ff" id="k-axp"></div><div style="font-size:10px;color:#64748b;margin-top:4px">Средний XP</div></div>
+    </div>
+    <div class="card"><div style="font-size:13px;font-weight:600;margin-bottom:8px">Распределение по уровням</div><div id="k-levels"></div></div>
+  </div>
+
+  <div id="dt-alerts" style="display:none" class="fade">
+    <div id="alerts-list"></div>
+    <div id="alerts-empty" style="display:none;color:#64748b;text-align:center;padding:40px">Нет алертов — все активны 🎉</div>
+  </div>
+
+  <div id="dt-members" style="display:none" class="fade">
+    <div id="members-list"></div>
+  </div>
+
+  <div id="dt-qr" style="display:none" class="fade">
+    <div class="card" style="text-align:center;padding:24px">
+      <div class="orb" style="font-size:16px;font-weight:700;margin-bottom:12px">QR-код для чекина</div>
+      <div style="font-size:13px;color:#64748b;margin-bottom:16px">Распечатайте и поставьте на ресепшн. Клиенты сканируют → мгновенный чекин + XP.</div>
+      <div id="qr-display" style="background:#fff;display:inline-block;padding:16px;border-radius:12px;margin-bottom:12px">
+        <div id="qr-code" style="width:200px;height:200px;display:flex;align-items:center;justify-content:center;color:#64748b;font-size:12px">Загрузка...</div>
+      </div>
+      <div class="mono" style="font-size:10px;color:#64748b" id="qr-info">Обновляется каждые 24 часа</div>
+      <button class="btn" onclick="genQR()" style="margin-top:12px;max-width:300px;margin-left:auto;margin-right:auto">Обновить QR-код</button>
+    </div>
+  </div>
+
+  <div id="dt-seasons" style="display:none" class="fade">
+    <div class="card" style="padding:20px">
+      <div class="orb" style="font-size:14px;font-weight:700;margin-bottom:12px">Создать сезон</div>
+      <input id="s-name" placeholder="Название (напр. Ледяная Крепость)">
+      <input id="s-desc" placeholder="Описание (опционально)">
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <input id="s-start" type="date" style="flex:1">
+        <input id="s-end" type="date" style="flex:1">
+      </div>
+      <button class="btn" onclick="createSeason()">Создать сезон</button>
+    </div>
+    <div class="mono" style="font-size:11px;color:#2E86C1;letter-spacing:2px;margin:16px 0 8px">СЕЗОНЫ</div>
+    <div id="seasons-list"></div>
+  </div>
+
+  <div onclick="dLogout()" style="margin-top:30px;text-align:center;color:#ef4444;font-size:12px;cursor:pointer;font-family:'JetBrains Mono'">Выйти</div>
+</div>
+
+<script>
+let dToken=localStorage.getItem("hq_dtoken");
+let dClubId=localStorage.getItem("hq_dclub");
+
+async function dApi(path,opts={}){
+  const res=await fetch("/api"+path,{...opts,headers:{"Content-Type":"application/json",...(dToken?{Authorization:"Bearer "+dToken}:{})},body:opts.body?JSON.stringify(opts.body):undefined});
+  if(!res.ok){const e=await res.json().catch(()=>({error:"Error"}));throw new Error(e.error)}
+  return res.json();
+}
+
+function dToggle(){document.getElementById("d-reg").style.display=document.getElementById("d-reg").style.display==="none"?"block":"none";}
+
+async function dLogin(){
+  try{
+    const res=await dApi("/clubs/login",{method:"POST",body:{email:document.getElementById("d-email").value,password:document.getElementById("d-pass").value}});
+    dToken=res.token;dClubId=res.club_id;localStorage.setItem("hq_dtoken",dToken);localStorage.setItem("hq_dclub",dClubId);
+    dEnter();
+  }catch(e){document.getElementById("d-err").textContent=e.message;document.getElementById("d-err").style.display="block";}
+}
+
+async function dRegister(){
+  try{
+    const res=await dApi("/clubs/register",{method:"POST",body:{name:document.getElementById("d-name").value,slug:document.getElementById("d-slug").value,email:document.getElementById("d-email").value,password:document.getElementById("d-pass").value,address:document.getElementById("d-addr").value}});
+    dToken=res.token;dClubId=res.club_id;localStorage.setItem("hq_dtoken",dToken);localStorage.setItem("hq_dclub",dClubId);
+    alert("Клуб создан! ID для клиентов: "+dClubId);
+    dEnter();
+  }catch(e){document.getElementById("d-err").textContent=e.message;document.getElementById("d-err").style.display="block";}
+}
+
+async function dEnter(){
+  document.getElementById("d-auth").style.display="none";
+  document.getElementById("d-main").style.display="block";
+  try{
+    const stats=await dApi("/club/stats");
+    document.getElementById("d-club-name").textContent="Клуб";
+    document.getElementById("k-total").textContent=stats.total_members;
+    document.getElementById("k-active").textContent=stats.active_week;
+    document.getElementById("k-wm").textContent=stats.workouts_month;
+    document.getElementById("k-axp").textContent=stats.avg_xp;
+    document.getElementById("k-levels").innerHTML=(stats.level_dist||[]).map(l=>`<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><div class="mono" style="font-size:11px;color:#64748b;width:40px">Ур.${l.level}</div><div style="flex:1;height:8px;background:#1e2231;border-radius:4px;overflow:hidden"><div style="height:100%;width:${Math.min(100,(l.count/Math.max(stats.total_members,1))*100)}%;background:#2E86C1;border-radius:4px"></div></div><div class="mono" style="font-size:11px;width:30px;text-align:right">${l.count}</div></div>`).join("")||"<div style='color:#64748b'>Нет данных</div>";
+    dLoadAlerts();dLoadMembers();
+  }catch(e){console.error(e);}
+}
+
+async function dLoadAlerts(){
+  try{
+    const alerts=await dApi("/club/alerts");
+    const el=document.getElementById("alerts-list");
+    const empty=document.getElementById("alerts-empty");
+    document.getElementById("alert-badge").textContent=alerts.filter(a=>a.risk==="high").length||"";
+    if(!alerts.length){el.innerHTML="";empty.style.display="block";return;}
+    empty.style.display="none";
+    el.innerHTML=alerts.map(a=>`<div class="card alert-row ${a.risk}" style="border-left-color:${a.risk==="high"?"#ef4444":a.risk==="medium"?"#f59e0b":"#00e5ff"}">
+      <div style="flex:1"><div style="font-size:14px;font-weight:600">${a.name}</div><div style="font-size:11px;color:#64748b;margin-top:3px">${a.days} дней без визита • Ур. ${a.level}</div></div>
+      <div class="mono" style="font-size:10px;padding:2px 6px;border-radius:4px;background:${a.risk==="high"?"rgba(239,68,68,.15)":"rgba(245,158,11,.15)"};color:${a.risk==="high"?"#ef4444":"#f59e0b"}">${a.risk==="high"?"ВЫСОКИЙ":a.risk==="medium"?"СРЕДНИЙ":"НИЗКИЙ"}</div>
+    </div>`).join("");
+  }catch(e){console.error(e);}
+}
+
+async function dLoadMembers(){
+  try{
+    const members=await dApi("/club/members");
+    document.getElementById("members-list").innerHTML=members.length?members.map(m=>`<div class="card" style="display:flex;align-items:center;gap:12px;padding:12px 16px">
+      <div style="flex:1"><div style="font-size:13px;font-weight:600">${m.name}</div><div style="font-size:11px;color:#64748b">Ур. ${m.level} • ${m.xp} XP • ${m.total_w} тренировок</div></div>
+      <div class="mono" style="font-size:10px;padding:2px 6px;border-radius:4px;background:${m.risk==="high"?"rgba(239,68,68,.15)":m.risk==="medium"?"rgba(245,158,11,.15)":m.risk==="low"?"rgba(0,229,255,.1)":"rgba(34,197,94,.1)"};color:${m.risk==="high"?"#ef4444":m.risk==="medium"?"#f59e0b":m.risk==="low"?"#00e5ff":"#22c55e"}">${m.risk==="none"?"OK":m.risk}</div>
+    </div>`).join(""):"<div style='color:#64748b;text-align:center;padding:40px'>Нет участников</div>";
+  }catch(e){console.error(e);}
+}
+
+function dTab(id){
+  ["overview","alerts","members","qr","seasons"].forEach(t=>{document.getElementById("dt-"+t).style.display=t===id?"block":"none"});
+  document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("on",t.dataset.t===id));
+  if(id==="qr")genQR();
+  if(id==="seasons")loadSeasons();
+}
+
+async function genQR(){
+  try{
+    const r=await dApi("/club/qr-token");
+    const url="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data="+encodeURIComponent(r.qr_token);
+    document.getElementById("qr-code").innerHTML='<img src="'+url+'" width="200" height="200" style="border-radius:8px">';
+    document.getElementById("qr-info").textContent="Действителен до конца дня ("+r.date+")";
+  }catch(e){document.getElementById("qr-code").textContent="Ошибка: "+e.message}
+}
+
+async function createSeason(){
+  const name=document.getElementById("s-name").value.trim();
+  const desc=document.getElementById("s-desc").value.trim();
+  const start=document.getElementById("s-start").value;
+  const end=document.getElementById("s-end").value;
+  if(!name||!start||!end){alert("Заполните название и даты");return}
+  try{
+    await dApi("/club/seasons",{method:"POST",body:{name,description:desc,start_date:start,end_date:end}});
+    document.getElementById("s-name").value="";document.getElementById("s-desc").value="";
+    loadSeasons();
+  }catch(e){alert(e.message)}
+}
+
+async function loadSeasons(){
+  try{
+    const seasons=await dApi("/club/seasons");
+    document.getElementById("seasons-list").innerHTML=seasons.length?seasons.map(s=>{
+      const now=new Date().toISOString().split("T")[0];
+      const isActive=s.active&&s.start_date<=now&&s.end_date>=now;
+      return'<div class="card" style="display:flex;align-items:center;gap:12px;'+(isActive?"border-color:#22c55e":"")+'"><div style="flex:1"><div style="font-size:14px;font-weight:600">'+s.name+'</div><div style="font-size:11px;color:#64748b;margin-top:2px">'+s.start_date+' → '+s.end_date+(s.description?" • "+s.description:"")+'</div></div><div class="mono" style="font-size:10px;padding:4px 8px;border-radius:6px;background:'+(isActive?"rgba(34,197,94,.1)":"rgba(100,116,139,.1)")+";color:"+(isActive?"#22c55e":"#64748b")+'">'+(isActive?"АКТИВЕН":s.active?"ОЖИДАНИЕ":"ЗАВЕРШЁН")+"</div></div>"
+    }).join(""):'<div style="color:#64748b;text-align:center;padding:30px">Нет сезонов. Создайте первый!</div>';
+  }catch(e){console.error(e)}
+}
+
+function dLogout(){dToken=null;localStorage.removeItem("hq_dtoken");localStorage.removeItem("hq_dclub");location.reload();}
+
+if(dToken) dEnter();
+</script>
+</body>
+</html>

@@ -1,0 +1,49 @@
+{
+  "expo": {
+    "name": "Gym Quest",
+    "slug": "gymquest",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0c0e14"
+    },
+    "ios": {
+      "bundleIdentifier": "fit.gymquest.app",
+      "supportsTablet": false,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Для автоматического чекина в зале",
+        "NSLocationAlwaysUsageDescription": "Для автоматического чекина в зале",
+        "NSHealthShareUsageDescription": "Для синхронизации данных о тренировках",
+        "NSHealthUpdateUsageDescription": "Для записи данных о тренировках",
+        "NSCameraUsageDescription": "Для сканирования QR-кода чекина"
+      }
+    },
+    "android": {
+      "package": "fit.gymquest.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0c0e14"
+      },
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "CAMERA",
+        "ACTIVITY_RECOGNITION"
+      ]
+    },
+    "plugins": [
+      "expo-camera",
+      "expo-location",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#00e5ff"
+        }
+      ]
+    ]
+  }
+}

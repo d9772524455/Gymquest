@@ -2,6 +2,7 @@
 .env.local
 .env.production
 docker-compose.override.yml
+db-ssl/
 
 node_modules/
 npm-debug.log*

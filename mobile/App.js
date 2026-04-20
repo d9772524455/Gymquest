@@ -39,7 +39,7 @@ export default function App() {
   const [permission, requestPermission] = useCameraPermissions();
 
   useEffect(() => {
-    registerForPush();
+    registerForPush().catch(() => {});
     let geoInterval = null;
     setupGeofence().then(id => { geoInterval = id; });
 

@@ -253,9 +253,12 @@ app.post("/api/clubs/login", wrap(async (req, res) => {
   res.json({ club_id: club.id, token: jwt.sign({ id: club.id, role: "club", slug: club.slug }, JWT_SECRET, { expiresIn: "30d" }) });
 }));
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 app.post("/api/members/register", wrap(async (req, res) => {
   const { club_id, email, password, name, hero_class } = req.body;
   if (!club_id || !email || !password || !name) return res.status(400).json({ error: "Missing fields" });
+  if (!UUID_RE.test(String(club_id).trim())) return res.status(400).json({ error: "Club ID должен быть скопирован из дашборда клуба (формат UUID)" });
   const hero = hero_class && HERO_CLASSES[hero_class] ? hero_class : "warrior";
   const id = uuidv4();
   const pw = await bcrypt.hash(password, 10);

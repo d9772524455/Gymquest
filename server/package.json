@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node index.js",
     "dev": "node --watch index.js",
-    "pm2": "pm2 start ../ecosystem.config.js"
+    "pm2": "pm2 start ../ecosystem.config.js",
+    "typecheck": "tsc --noEmit -p jsconfig.json || true"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

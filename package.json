@@ -1,0 +1,24 @@
+{
+  "name": "gymquest-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Gym Quest — gamified fitness platform. Monorepo root.",
+  "scripts": {
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write \"**/*.{js,json,md,yml,yaml,html,css}\"",
+    "format:check": "prettier --check \"**/*.{js,json,md,yml,yaml,html,css}\"",
+    "smoke": "node scripts/smoke.mjs",
+    "smoke:prod": "TARGET=prod node scripts/smoke.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.0",
+    "axios": "^1.7.2",
+    "eslint": "^8.57.0",
+    "prettier": "^3.2.5",
+    "typescript": "^5.4.5"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

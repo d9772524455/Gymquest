@@ -44,6 +44,12 @@
           "color": "#00e5ff"
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "6ba651e5-25d9-4170-903d-61da76ba3678"
+      }
+    },
+    "owner": "zemdenalex"
   }
 }

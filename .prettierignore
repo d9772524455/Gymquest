@@ -1,0 +1,17 @@
+node_modules/
+dist/
+build/
+*.apk
+*.aab
+.expo/
+.next/
+coverage/
+ref/
+
+# Local snapshot files (not committed to origin)
+/app.html
+/app-after.html
+/dash.html
+/mobile/assets/
+/mobile/eas.json
+/mobile/package-lock.json

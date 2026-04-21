@@ -1,0 +1,8 @@
+node_modules/
+dist/
+build/
+.expo/
+coverage/
+mobile/node_modules/
+server/node_modules/
+ref/

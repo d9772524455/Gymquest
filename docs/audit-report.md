@@ -67,7 +67,7 @@
 ### Bug S1: JWT_SECRET fallback к dev-значению в проде
 
 - **Файл:** `server/index.js:36`
-- **Критичность:** 🔴 critical
+- **Критичность:** 🔴 critical → понижено до 🟠 high после проверки prod env
 - **Категория:** security
 - **Что сломано:**
 
@@ -79,7 +79,7 @@ const JWT_SECRET = process.env.JWT_SECRET || "hq_dev_secret_change_in_prod";
 
 - **Как чиним:** fail-fast в проде — если `NODE_ENV=production` и `JWT_SECRET` не задан, `process.exit(1)` со внятной ошибкой. В dev можно оставить fallback. Это типичная часть `config.js` из Phase 1.
 - **Входит в бюджет:** yes (Phase 1, `config.js`)
-- **Hotfix-escape:** ОЦЕНИТЬ — проверить на prod VDS, что env-переменная реально задана. Если да — можно подождать Phase 1. Если есть риск misconfiguration — hotfix сейчас.
+- **Status:** ✅ Не эксплуатируется на prod — проверено 2026-04-22 через `ssh root@194.67.102.76 'grep JWT_SECRET /opt/gymquest/.env'`, значение — proper 64-char hex random. Ротирован после этой проверки для гигиены. Остаётся в Phase 1 как улучшение (fail-fast), а не срочный hotfix.
 
 ---
 

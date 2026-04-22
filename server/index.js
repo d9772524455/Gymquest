@@ -4,13 +4,17 @@
 // Run: node index.js
 // ═══════════════════════════════════════════════════════════
 
-require("dotenv").config();
+const config = require("./src/config");
+const logger = require("./src/logger");
+const { pool, query, queryOne } = require("./src/db/pool");
+const constants = require("./src/constants");
+const { HERO_CLASSES, XP_LEVELS, ACHIEVEMENTS, DEFAULT_HERO } = constants;
+const { runMigrations } = require("./src/db/migrate");
 const express = require("express");
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const { v4: uuidv4 } = require("uuid");
-const { Pool } = require("pg");
 const path = require("path");
 
 const app = express();
@@ -23,148 +27,13 @@ let rateLimit;
 try { rateLimit = require("express-rate-limit"); } catch {}
 
 if (rateLimit) {
-  // General API: 100 requests per 15 min per IP
-  app.use("/api/", rateLimit({ windowMs: 15 * 60 * 1000, max: 100, standardHeaders: true, legacyHeaders: false, message: { error: "Too many requests, try again later" } }));
-  // Auth endpoints: 10 attempts per 15 min per IP
-  app.use("/api/clubs/login", rateLimit({ windowMs: 15 * 60 * 1000, max: 10, message: { error: "Too many login attempts" } }));
-  app.use("/api/members/login", rateLimit({ windowMs: 15 * 60 * 1000, max: 10, message: { error: "Too many login attempts" } }));
-  app.use("/api/clubs/register", rateLimit({ windowMs: 60 * 60 * 1000, max: 5, message: { error: "Too many registrations" } }));
-  app.use("/api/members/register", rateLimit({ windowMs: 60 * 60 * 1000, max: 20, message: { error: "Too many registrations" } }));
+  const { general, login, registerClub, registerMember } = constants.RATE_LIMITS;
+  app.use("/api/", rateLimit({ windowMs: general.windowMs, max: general.max, standardHeaders: true, legacyHeaders: false, message: { error: "Too many requests, try again later" } }));
+  app.use("/api/clubs/login", rateLimit({ windowMs: login.windowMs, max: login.max, message: { error: "Too many login attempts" } }));
+  app.use("/api/members/login", rateLimit({ windowMs: login.windowMs, max: login.max, message: { error: "Too many login attempts" } }));
+  app.use("/api/clubs/register", rateLimit({ windowMs: registerClub.windowMs, max: registerClub.max, message: { error: "Too many registrations" } }));
+  app.use("/api/members/register", rateLimit({ windowMs: registerMember.windowMs, max: registerMember.max, message: { error: "Too many registrations" } }));
 }
-
-const PORT = process.env.PORT || 3000;
-const JWT_SECRET = process.env.JWT_SECRET || "hq_dev_secret_change_in_prod";
-const isProd = process.env.NODE_ENV === "production";
-
-// ─── DATABASE ────────────────────────────────────────────
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: isProd ? { rejectUnauthorized: false } : false,
-  max: 20,
-  idleTimeoutMillis: 30000,
-});
-
-async function query(text, params) {
-  const res = await pool.query(text, params);
-  return res.rows;
-}
-
-async function queryOne(text, params) {
-  const rows = await query(text, params);
-  return rows[0] || null;
-}
-
-async function initDB() {
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS clubs (
-      id TEXT PRIMARY KEY,
-      name TEXT NOT NULL,
-      slug TEXT UNIQUE NOT NULL,
-      owner_email TEXT UNIQUE NOT NULL,
-      owner_pw TEXT NOT NULL,
-      address TEXT DEFAULT '',
-      city TEXT DEFAULT 'Москва',
-      plan TEXT DEFAULT 'starter',
-      created_at TIMESTAMPTZ DEFAULT NOW(),
-      active BOOLEAN DEFAULT TRUE
-    );
-    CREATE TABLE IF NOT EXISTS members (
-      id TEXT PRIMARY KEY,
-      club_id TEXT REFERENCES clubs(id) ON DELETE CASCADE,
-      email TEXT NOT NULL,
-      pw TEXT NOT NULL,
-      name TEXT NOT NULL,
-      hero TEXT DEFAULT 'warrior',
-      xp INT DEFAULT 0,
-      level INT DEFAULT 1,
-      streak INT DEFAULT 0,
-      max_streak INT DEFAULT 0,
-      total_w INT DEFAULT 0,
-      total_min INT DEFAULT 0,
-      total_ton REAL DEFAULT 0,
-      total_cal INT DEFAULT 0,
-      last_w DATE,
-      created_at TIMESTAMPTZ DEFAULT NOW(),
-      active BOOLEAN DEFAULT TRUE,
-      UNIQUE(club_id, email)
-    );
-    CREATE TABLE IF NOT EXISTS workouts (
-      id TEXT PRIMARY KEY,
-      member_id TEXT REFERENCES members(id) ON DELETE CASCADE,
-      club_id TEXT REFERENCES clubs(id) ON DELETE CASCADE,
-      date DATE DEFAULT CURRENT_DATE,
-      mins INT DEFAULT 0,
-      cal INT DEFAULT 0,
-      xp_earned INT DEFAULT 0,
-      type TEXT DEFAULT 'checkin',
-      created_at TIMESTAMPTZ DEFAULT NOW()
-    );
-    CREATE TABLE IF NOT EXISTS exercises (
-      id TEXT PRIMARY KEY,
-      workout_id TEXT REFERENCES workouts(id) ON DELETE CASCADE,
-      name TEXT,
-      sets INT DEFAULT 0,
-      reps INT DEFAULT 0,
-      weight REAL DEFAULT 0,
-      tonnage REAL DEFAULT 0
-    );
-    CREATE TABLE IF NOT EXISTS achievements (
-      member_id TEXT REFERENCES members(id) ON DELETE CASCADE,
-      ach_id TEXT,
-      unlocked_at TIMESTAMPTZ DEFAULT NOW(),
-      PRIMARY KEY(member_id, ach_id)
-    );
-    CREATE TABLE IF NOT EXISTS alerts (
-      id TEXT PRIMARY KEY,
-      club_id TEXT REFERENCES clubs(id) ON DELETE CASCADE,
-      member_id TEXT REFERENCES members(id) ON DELETE CASCADE,
-      risk TEXT DEFAULT 'low',
-      days INT DEFAULT 0,
-      status TEXT DEFAULT 'open',
-      created_at TIMESTAMPTZ DEFAULT NOW()
-    );
-    CREATE TABLE IF NOT EXISTS seasons (
-      id TEXT PRIMARY KEY,
-      club_id TEXT REFERENCES clubs(id) ON DELETE CASCADE,
-      name TEXT NOT NULL,
-      description TEXT,
-      start_date DATE NOT NULL,
-      end_date DATE NOT NULL,
-      active BOOLEAN DEFAULT TRUE
-    );
-    CREATE INDEX IF NOT EXISTS idx_members_club ON members(club_id);
-    CREATE INDEX IF NOT EXISTS idx_workouts_member ON workouts(member_id);
-    CREATE INDEX IF NOT EXISTS idx_workouts_club_date ON workouts(club_id, date);
-    CREATE INDEX IF NOT EXISTS idx_alerts_club_status ON alerts(club_id, status);
-  `);
-  console.log("Database schema initialized");
-}
-
-// ─── CONFIG ──────────────────────────────────────────────
-
-const HERO_CLASSES = {
-  warrior: { name: "Воин", emoji: "⚔️", xpMult: 1.0 },
-  runner:  { name: "Бегун", emoji: "⚡", xpMult: 1.0 },
-  monk:    { name: "Монах", emoji: "🧘", xpMult: 1.0 },
-  titan:   { name: "Титан", emoji: "🔥", xpMult: 1.0 },
-};
-
-const XP_LEVELS = [0, 500, 1200, 2100, 3200, 4500, 6000, 7800, 9900, 12500];
-
-const ACHIEVEMENTS = [
-  { id: "first_blood", name: "Первая кровь", desc: "Первая тренировка", field: "total_w", op: ">=", val: 1 },
-  { id: "streak3", name: "Серия ×3", desc: "3 дня подряд", field: "streak", op: ">=", val: 3 },
-  { id: "streak7", name: "Неделя огня", desc: "7 дней подряд", field: "streak", op: ">=", val: 7 },
-  { id: "streak30", name: "Месяц стали", desc: "30 дней подряд", field: "streak", op: ">=", val: 30 },
-  { id: "w10", name: "Десятка", desc: "10 тренировок", field: "total_w", op: ">=", val: 10 },
-  { id: "w50", name: "Полтинник", desc: "50 тренировок", field: "total_w", op: ">=", val: 50 },
-  { id: "w100", name: "Центурион", desc: "100 тренировок", field: "total_w", op: ">=", val: 100 },
-  { id: "lv5", name: "Середняк", desc: "Уровень 5", field: "level", op: ">=", val: 5 },
-  { id: "lv10", name: "Легенда", desc: "Уровень 10", field: "level", op: ">=", val: 10 },
-  { id: "ton1k", name: "Тонна", desc: "1 000 кг", field: "total_ton", op: ">=", val: 1000 },
-  { id: "ton10k", name: "Тяжеловес", desc: "10 000 кг", field: "total_ton", op: ">=", val: 10000 },
-];
 
 // ─── HELPERS ─────────────────────────────────────────────
 
@@ -214,7 +83,7 @@ function auth(role) {
     const t = req.headers.authorization?.replace("Bearer ", "");
     if (!t) return res.status(401).json({ error: "No token" });
     try {
-      const d = jwt.verify(t, JWT_SECRET);
+      const d = jwt.verify(t, config.jwtSecret);
       if (role && d.role !== role) return res.status(403).json({ error: "Forbidden" });
       req.user = d;
       next();
@@ -229,8 +98,8 @@ function wrap(fn) {
 }
 
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ error: isProd ? "Server error" : err.message });
+  logger.error({ err: err.message, stack: err.stack }, "request handler error");
+  res.status(500).json({ error: config.isProd ? "Server error" : err.message });
 });
 
 // ─── AUTH ROUTES ─────────────────────────────────────────
@@ -242,7 +111,7 @@ app.post("/api/clubs/register", wrap(async (req, res) => {
   const pw = await bcrypt.hash(password, 10);
   await query("INSERT INTO clubs(id,name,slug,owner_email,owner_pw,address,city) VALUES($1,$2,$3,$4,$5,$6,$7)",
     [id, name, slug, email, pw, address || "", city || "Москва"]);
-  res.json({ club_id: id, token: jwt.sign({ id, role: "club", slug }, JWT_SECRET, { expiresIn: "30d" }) });
+  res.json({ club_id: id, token: jwt.sign({ id, role: "club", slug }, config.jwtSecret, { expiresIn: constants.JWT_EXPIRES_IN_USER }) });
 }));
 
 app.post("/api/clubs/login", wrap(async (req, res) => {
@@ -250,7 +119,7 @@ app.post("/api/clubs/login", wrap(async (req, res) => {
   const club = await queryOne("SELECT id,slug,owner_pw FROM clubs WHERE owner_email=$1 AND active=TRUE", [email]);
   if (!club) return res.status(401).json({ error: "Not found" });
   if (!(await bcrypt.compare(password, club.owner_pw))) return res.status(401).json({ error: "Wrong password" });
-  res.json({ club_id: club.id, token: jwt.sign({ id: club.id, role: "club", slug: club.slug }, JWT_SECRET, { expiresIn: "30d" }) });
+  res.json({ club_id: club.id, token: jwt.sign({ id: club.id, role: "club", slug: club.slug }, config.jwtSecret, { expiresIn: constants.JWT_EXPIRES_IN_USER }) });
 }));
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -259,11 +128,11 @@ app.post("/api/members/register", wrap(async (req, res) => {
   const { club_id, email, password, name, hero_class } = req.body;
   if (!club_id || !email || !password || !name) return res.status(400).json({ error: "Missing fields" });
   if (!UUID_RE.test(String(club_id).trim())) return res.status(400).json({ error: "Club ID должен быть скопирован из дашборда клуба (формат UUID)" });
-  const hero = hero_class && HERO_CLASSES[hero_class] ? hero_class : "warrior";
+  const hero = hero_class && HERO_CLASSES[hero_class] ? hero_class : DEFAULT_HERO;
   const id = uuidv4();
   const pw = await bcrypt.hash(password, 10);
   await query("INSERT INTO members(id,club_id,email,pw,name,hero) VALUES($1,$2,$3,$4,$5,$6)", [id, club_id, email, pw, name, hero]);
-  res.json({ member_id: id, club_id, token: jwt.sign({ id, role: "member", club_id }, JWT_SECRET, { expiresIn: "30d" }) });
+  res.json({ member_id: id, club_id, token: jwt.sign({ id, role: "member", club_id }, config.jwtSecret, { expiresIn: constants.JWT_EXPIRES_IN_USER }) });
 }));
 
 app.post("/api/members/login", wrap(async (req, res) => {
@@ -271,7 +140,7 @@ app.post("/api/members/login", wrap(async (req, res) => {
   const m = await queryOne("SELECT id,pw FROM members WHERE club_id=$1 AND email=$2 AND active=TRUE", [club_id, email]);
   if (!m) return res.status(401).json({ error: "Not found" });
   if (!(await bcrypt.compare(password, m.pw))) return res.status(401).json({ error: "Wrong password" });
-  res.json({ member_id: m.id, token: jwt.sign({ id: m.id, role: "member", club_id }, JWT_SECRET, { expiresIn: "30d" }) });
+  res.json({ member_id: m.id, token: jwt.sign({ id: m.id, role: "member", club_id }, config.jwtSecret, { expiresIn: constants.JWT_EXPIRES_IN_USER }) });
 }));
 
 // ─── MEMBER ROUTES ───────────────────────────────────────
@@ -404,7 +273,7 @@ app.get("/api/global/leaderboard", wrap(async (_, res) => {
 
 app.get("/api/club/qr-token", auth("club"), wrap(async (req, res) => {
   const today = new Date().toISOString().split("T")[0];
-  const token = jwt.sign({ club_id: req.user.id, date: today, type: "checkin" }, JWT_SECRET, { expiresIn: "24h" });
+  const token = jwt.sign({ club_id: req.user.id, date: today, type: "checkin" }, config.jwtSecret, { expiresIn: constants.JWT_EXPIRES_IN_QR });
   res.json({ qr_token: token, date: today, expires_in: "24h" });
 }));
 
@@ -412,7 +281,7 @@ app.post("/api/qr-checkin", auth("member"), wrap(async (req, res) => {
   const { qr_token } = req.body;
   if (!qr_token) return res.status(400).json({ error: "qr_token required" });
   let decoded;
-  try { decoded = jwt.verify(qr_token, JWT_SECRET); } catch { return res.status(400).json({ error: "Invalid or expired QR" }); }
+  try { decoded = jwt.verify(qr_token, config.jwtSecret); } catch { return res.status(400).json({ error: "Invalid or expired QR" }); }
   if (decoded.type !== "checkin" || decoded.club_id !== req.user.club_id) return res.status(403).json({ error: "Wrong club QR" });
   const mid = req.user.id, cid = req.user.club_id;
   const m = await queryOne("SELECT id,hero,xp,level,streak,total_w,total_ton,last_w FROM members WHERE id=$1", [mid]);
@@ -434,18 +303,18 @@ app.post("/api/qr-checkin", auth("member"), wrap(async (req, res) => {
 
 app.post("/api/club/send-alerts", auth("club"), wrap(async (req, res) => {
   let nodemailer; try { nodemailer = require("nodemailer"); } catch { return res.json({ sent: 0, message: "npm install nodemailer" }); }
-  if (!process.env.SMTP_HOST) return res.json({ sent: 0, message: "Set SMTP_HOST/USER/PASS in .env" });
-  const transporter = nodemailer.createTransport({ host: process.env.SMTP_HOST, port: parseInt(process.env.SMTP_PORT || "587"), secure: false, auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS } });
+  if (!config.smtp.host) return res.json({ sent: 0, message: "Set SMTP_HOST/USER/PASS in .env" });
+  const transporter = nodemailer.createTransport({ host: config.smtp.host, port: config.smtp.port, secure: false, auth: { user: config.smtp.user, pass: config.smtp.pass } });
   const club = await queryOne("SELECT name, owner_email FROM clubs WHERE id=$1", [req.user.id]);
   const alerts = await query("SELECT m.name, m.level, (CURRENT_DATE-COALESCE(m.last_w,m.created_at::date))::int as days FROM members m WHERE m.club_id=$1 AND m.active=TRUE AND (CURRENT_DATE-COALESCE(m.last_w,m.created_at::date))::int>=7 ORDER BY days DESC LIMIT 20", [req.user.id]);
   let sent = 0;
   for (const a of alerts) {
     try {
-      await transporter.sendMail({ from: `"Gym Quest" <${process.env.SMTP_USER}>`, to: club.owner_email,
-        subject: `\u26a0\ufe0f ${a.name} \u2014 ${a.days} \u0434\u043d\u0435\u0439 \u0431\u0435\u0437 \u0432\u0438\u0437\u0438\u0442\u0430`,
-        html: `<div style="font-family:Arial;padding:20px"><h2 style="color:#ef4444">${a.name}: ${a.days} \u0434\u043d\u0435\u0439</h2><p>\u0423\u0440\u043e\u0432\u0435\u043d\u044c ${a.level}. \u0420\u0435\u043a\u043e\u043c\u0435\u043d\u0434\u0443\u0435\u043c \u0441\u0432\u044f\u0437\u0430\u0442\u044c\u0441\u044f.</p><p style="color:#64748b;font-size:12px">Gym Quest \u2022 ${club.name}</p></div>` });
+      await transporter.sendMail({ from: `"Gym Quest" <${config.smtp.user}>`, to: club.owner_email,
+        subject: `⚠️ ${a.name} — ${a.days} дней без визита`,
+        html: `<div style="font-family:Arial;padding:20px"><h2 style="color:#ef4444">${a.name}: ${a.days} дней</h2><p>Уровень ${a.level}. Рекомендуем связаться.</p><p style="color:#64748b;font-size:12px">Gym Quest • ${club.name}</p></div>` });
       sent++;
-    } catch (e) { console.error("Email error:", e.message); }
+    } catch (e) { logger.error({ err: e.message }, "smtp send error"); }
   }
   res.json({ sent, total_alerts: alerts.length });
 }));
@@ -502,14 +371,16 @@ app.get("/api/health", wrap(async (_, res) => {
 // ─── START ───────────────────────────────────────────────
 
 async function start() {
-  await initDB();
-  app.listen(PORT, () => {
-    console.log(`\n🎮 Gym Quest v2.0 (PostgreSQL) running on http://localhost:${PORT}`);
-    console.log(`📱 Client: http://localhost:${PORT}/app`);
-    console.log(`📊 Dashboard: http://localhost:${PORT}/dashboard`);
-    console.log(`🔧 Health: http://localhost:${PORT}/api/health`);
-    console.log(`🗄️  DB: ${process.env.DATABASE_URL ? "PostgreSQL" : "⚠️ DATABASE_URL not set!"}\n`);
+  await runMigrations(pool);
+  app.listen(config.port, () => {
+    logger.info(
+      { event: "server_started", port: config.port, isProd: config.isProd },
+      `Gym Quest API listening on :${config.port}`
+    );
   });
 }
 
-start().catch(err => { console.error("Failed to start:", err); process.exit(1); });
+start().catch((err) => {
+  logger.fatal({ err: err.message, stack: err.stack }, "Failed to start");
+  process.exit(1);
+});

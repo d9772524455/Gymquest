@@ -5,13 +5,11 @@ const { wrap, HttpError } = require('../middleware/errorHandler');
 const { query, queryOne } = require('../db/pool');
 const { calcXP, calcLevel, getStreakAction } = require('../services/xp');
 const { checkAchievements } = require('../services/achievements');
+const { body, query: querySchema } = require('../models/schemas');
+const { validateBody, validateQuery } = require('../middleware/validate');
 
 const router = express.Router();
 
-/**
- * Build a multi-row INSERT for exercises. Fixes N+1 (audit bug S11).
- * Returns { text, values, totalTonnage }.
- */
 function buildExercisesInsert(workoutId, exercises) {
   if (!exercises || exercises.length === 0) {
     return { text: null, values: [], totalTonnage: 0 };
@@ -38,14 +36,9 @@ function buildExercisesInsert(workoutId, exercises) {
 router.post(
   '/',
   auth('member'),
+  validateBody(body.createWorkout),
   wrap(async (req, res) => {
-    const {
-      duration_minutes = 0,
-      calories = 0,
-      exercises = [],
-      type = 'checkin',
-    } = req.body;
-
+    const { duration_minutes, calories, exercises, type } = req.body;
     const mid = req.user.id;
     const cid = req.user.club_id;
 
@@ -71,7 +64,6 @@ router.post(
       [wid, mid, cid, today, duration_minutes, calories, xp, type]
     );
 
-    // Multi-row INSERT for exercises (was N+1 in the old code — audit S11)
     const exIns = buildExercisesInsert(wid, exercises);
     if (exIns.text) {
       await query(exIns.text, exIns.values);
@@ -117,9 +109,9 @@ router.post(
 router.get(
   '/history',
   auth('member'),
+  validateQuery(querySchema.historyQuery),
   wrap(async (req, res) => {
-    const limitRaw = parseInt(req.query.limit, 10);
-    const limit = Number.isFinite(limitRaw) && limitRaw > 0 ? Math.min(limitRaw, 100) : 20;
+    const { limit } = req.query;
     const rows = await query(
       `SELECT id, date, mins, cal, xp_earned, type
        FROM workouts WHERE member_id=$1

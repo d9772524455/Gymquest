@@ -7,15 +7,17 @@ const { wrap, HttpError } = require('../middleware/errorHandler');
 const { query, queryOne } = require('../db/pool');
 const { calcXP, calcLevel, getStreakAction } = require('../services/xp');
 const { checkAchievements } = require('../services/achievements');
+const { body } = require('../models/schemas');
+const { validateBody } = require('../middleware/validate');
 
 const router = express.Router();
 
 router.post(
   '/',
   auth('member'),
+  validateBody(body.qrCheckin),
   wrap(async (req, res) => {
     const { qr_token } = req.body;
-    if (!qr_token) throw new HttpError(400, 'qr_token required');
 
     let decoded;
     try {
@@ -27,7 +29,6 @@ router.post(
       throw new HttpError(403, 'Wrong club QR');
     }
 
-    // S16 fix: QR token is dated (issued with date=YYYY-MM-DD); reject stale.
     const today = new Date().toISOString().split('T')[0];
     if (decoded.date !== today) {
       throw new HttpError(400, 'QR expired for today');

@@ -5,5 +5,6 @@ RUN cd server && npm ci --omit=dev
 COPY server/ ./server/
 COPY client/ ./client/
 COPY dashboard/ ./dashboard/
+COPY shared/ ./shared/
 EXPOSE 3000
 CMD ["node", "server/index.js"]

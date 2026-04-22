@@ -5,6 +5,7 @@ const router = express.Router();
 
 router.use('/app', express.static(path.join(__dirname, '..', '..', '..', 'client')));
 router.use('/dashboard', express.static(path.join(__dirname, '..', '..', '..', 'dashboard')));
+router.use('/shared', express.static(path.join(__dirname, '..', '..', '..', 'shared')));
 
 router.get('/', (_req, res) => {
   res.send(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Gym Quest</title>

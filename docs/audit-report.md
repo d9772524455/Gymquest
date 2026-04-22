@@ -4,6 +4,43 @@
 > Generated: 2026-04-22, as part of Phase 0 of cleanup project.
 > Spec: https://github.com/zemdenalex — см. локальный `F127 - HeroQuest/docs/superpowers/specs/2026-04-22-gymquest-cleanup-design.md`.
 
+## Phase 2 closure (2026-04-23 — branch `cleanup/phase-2-frontend`)
+
+**Closed in Phase 2:**
+- **C1, C2** — XSS в leaderboard + custom exercise: `elt()` DOM-builder в `client/js/screens/board.js`, `workout.js`, `library.js`. Все пользовательские строки идут через `text:` → `textContent`.
+- **C3** — 401 handling: `client/js/api.js` чистит auth + reload на 401, но только если `state.tk` был установлен (иначе — ошибка показывается в `#a-err`).
+- **C4** — `confirm()` заменён на `confirmModal()` в `client/js/ui/modal.js` (Promise-based).
+- **C5** — короткие идентификаторы переименованы: `ap → apiCall`, `ts → showToast`, `fn → formatNumber`, `rH → renderHome`, `rP → renderProfile`, `sT → switchTab`, `doCI → quickCheckin`, `startW/canW/finW → startWorkout/cancelWorkout/finishWorkout`, `rW → renderWorkoutBuilder`, `aS/rmS/rmEx/uS/uWS → addSet/removeSet/removeExercise/updateSetField/updateWorkoutSummary`, `openLib/clLib/fLib/aEx/addC → openLibrary/closeLibrary/filterLibrary/addExercise/addCustomExercise`, `out → logout`, `lB → loadLeaderboard`, `lHi → loadHistory`, `tglAuth/pH/doAuth/go → toggleAuthMode/pickHero/submitAuth/enterApp`.
+- **C6** — `min`/`max`/`step` на numeric inputs в `client/js/screens/workout.js` (повторы 0-999 step 1, вес 0-9999 step 0.5).
+- **C8 (partial)** — все `onclick=`/`oninput=`/`onchange=` удалены из `client/index.html` и `dashboard/index.html`, заменены на `addEventListener` + event delegation в `main.js`. Inline `style="..."` остаются (вне бюджета — spec §4.4).
+- **C9** — `<form id="auth-form">` обёртка в `client/index.html`, submit handler вызывает `submitAuth()`. Enter в password submit'ит форму.
+- **D4** — QR-генерация локальная: `dashboard/vendor/qrcode.min.js` (qrcode-generator@1.4.4, 20KB, sha256:bb2365e4902f4f84852cf4025e6f6a60325a682aeafa43fb63b7fc8f098d1ef2). `dashboard/js/screens/qr.js` использует `createDataURL(5,0)` + real `<img>` element. **No more `api.qrserver.com` calls.**
+- **D5** — 401 handling в `dashboard/js/api.js` (с тем же gating что C3).
+- **D6** — все `alert()` заменены на `showToast()`; добавлен `<div id="d-toast" class="toast">` и `showToast()` в `dashboard/js/ui/toast.js`.
+- **D7** — `dashboard/js/screens/overview.js` читает `stats.name` из API (сервер возвращает его с Plan 2a) и ставит в `#d-club-name`.
+- **D8** — валидация `end_date >= start_date` в `dashboard/js/screens/seasons.js`: red toast если end < start. Дополнительно `s-end.min` синкается при change на `s-start`.
+- **D9** — persistent Club ID banner в `dashboard/index.html` (`#d-club-id-banner`) показывается после auth; копирование через `copyToClipboard()` + success toast.
+
+**Architecture changes:**
+- Inline `<style>` и `<script>` полностью вынесены из `client/index.html` (194 → ~108 строк) и `dashboard/index.html` (272 → ~108 строк).
+- `shared/css/tokens.css` — единый источник правды для CSS custom properties, подключается к обоим фронтам.
+- `server/src/routes/static.js` монтирует `/shared` для tokens.css.
+- ES-модули через нативный `<script type="module">`, без build-step. Android WebView совместимо.
+- 14 модулей клиента + 13 модулей дашборда + 1 vendored библиотека.
+
+**Non-regression invariants held:**
+- localStorage ключи byte-for-byte: `hq_token`, `hq_club`, `hq_dtoken`, `hq_dclub`.
+- API контракт не менялся (grep-verified).
+- `grep -rn 'innerHTML' client/js/ dashboard/js/` → empty (security invariant).
+
+**Remaining out-of-budget (unchanged since spec):**
+- C7 (JWT в localStorage) — документирован как known risk; attack vector закрыт через C1/C2.
+- S9 (timezone streak) — отдельный CR, требует DB-миграции.
+- S12 (N+1 achievements) — мало данных, не стоит времени.
+- I6/I7/I10/I2/I3/I4/I5/I9 — Phase 4 (CI + docs).
+
+**Visual parity:** проверяется вручную в браузере на prod после merge (Docker недоступен локально). DevTools Network tab на `/dashboard` подтверждает отсутствие request'ов к `api.qrserver.com`.
+
 ## Legend
 
 | Критичность | Что означает |

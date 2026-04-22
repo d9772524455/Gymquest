@@ -11,9 +11,12 @@ export async function dApi(path, opts = {}) {
     body: opts.body ? JSON.stringify(opts.body) : undefined,
   });
   if (res.status === 401) {
-    clearAuth();
-    location.reload();
-    throw new Error('Сессия истекла — перелогиньтесь');
+    if (dToken) {
+      clearAuth();
+      location.reload();
+      throw new Error('Сессия истекла — перелогиньтесь');
+    }
+    // No session — login-attempt 401. Fall through.
   }
   if (!res.ok) {
     const e = await res.json().catch(() => ({ error: 'Error' }));

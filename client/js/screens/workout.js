@@ -4,22 +4,10 @@ import { fn } from '../constants.js';
 import { elt, clearChildren } from '../ui/dom.js';
 import { ts } from '../ui/toast.js';
 import { confirmModal } from '../ui/modal.js';
-
-// Forward-declared refs; set by main.js to break circular import potential and
-// make cross-screen updates after finW explicit.
-let _sT = null;
-let _rH = null;
-let _rP = null;
-let _lB = null;
-let _lHi = null;
-
-export function wireWorkout({ sT, rH, rP, lB, lHi }) {
-  _sT = sT;
-  _rH = rH;
-  _rP = rP;
-  _lB = lB;
-  _lHi = lHi;
-}
+import { sT, rH } from './home.js';
+import { rP } from './profile.js';
+import { lB } from './board.js';
+import { lHi } from './history.js';
 
 function startTimer() {
   const s = getState();
@@ -37,7 +25,7 @@ export function startW() {
   s.wSt = Date.now();
   rW();
   uWS();
-  if (_sT) _sT('workout');
+  sT('workout');
   startTimer();
 }
 
@@ -47,7 +35,7 @@ export async function canW() {
   s.W = [];
   if (s.wTi) clearInterval(s.wTi);
   document.getElementById('w-tmr').textContent = '00:00';
-  if (_sT) _sT('home');
+  sT('home');
 }
 
 export function rW() {
@@ -209,20 +197,21 @@ export async function finW() {
         exercises: exs,
       },
     });
-    let m = '🏋️ +' + r.xp_earned + ' XP';
-    if (r.tonnage > 0) m += ' • ' + fn(r.tonnage) + 'кг';
-    m += ' • 🔥' + r.streak;
-    if (r.level_up) m = '🎉 LEVEL UP!<br>' + m;
-    if (r.new_achievements?.length) m += '<br>🏅 ' + r.new_achievements.map((a) => a.name).join(', ');
-    ts(m, r.level_up ? 'var(--org)' : 'var(--grn)');
+    let line1 = '🏋️ +' + r.xp_earned + ' XP';
+    if (r.tonnage > 0) line1 += ' • ' + fn(r.tonnage) + 'кг';
+    line1 += ' • 🔥' + r.streak;
+    if (r.level_up) line1 = '🎉 LEVEL UP! ' + line1;
+    const lines = [line1];
+    if (r.new_achievements?.length) lines.push('🏅 ' + r.new_achievements.map((a) => a.name).join(', '));
+    ts(lines, r.level_up ? 'var(--org)' : 'var(--grn)');
     s.W = [];
     document.getElementById('w-tmr').textContent = '00:00';
     s.P = await ap('/me');
-    if (_rH) _rH();
-    if (_rP) _rP();
-    if (_lB) _lB();
-    if (_lHi) _lHi();
-    if (_sT) _sT('home');
+    rH();
+    rP();
+    lB();
+    lHi();
+    sT('home');
   } catch (e) {
     ts(e.message, 'var(--red)');
   }

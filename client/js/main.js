@@ -10,14 +10,10 @@ import {
   rmS,
   rmEx,
   uS,
-  wireWorkout,
 } from './screens/workout.js';
 import { openLib, clLib, fLib, aEx, addC } from './screens/library.js';
 import { lB } from './screens/board.js';
 import { lHi } from './screens/history.js';
-
-// Wire workout's cross-screen callbacks now that all modules are loaded.
-wireWorkout({ sT, rH, rP, lB, lHi });
 
 // --- Auth ---
 initAuth(go);

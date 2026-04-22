@@ -62,12 +62,12 @@ export async function doCI() {
       method: 'POST',
       body: { duration_minutes: 0, calories: 0, type: 'checkin', exercises: [] },
     });
-    let m = '📍 +' + r.xp_earned + ' XP • 🔥' + r.streak;
-    if (r.level_up) m = '🎉 LEVEL UP! ' + m;
+    const lines = ['📍 +' + r.xp_earned + ' XP • 🔥' + r.streak];
+    if (r.level_up) lines[0] = '🎉 LEVEL UP! ' + lines[0];
     if (r.new_achievements?.length) {
-      m += '<br>🏅 ' + r.new_achievements.map((a) => a.name).join(', ');
+      lines.push('🏅 ' + r.new_achievements.map((a) => a.name).join(', '));
     }
-    ts(m, r.level_up ? 'var(--org)' : undefined);
+    ts(lines, r.level_up ? 'var(--org)' : undefined);
     const s = getState();
     s.P = await ap('/me');
     rH();

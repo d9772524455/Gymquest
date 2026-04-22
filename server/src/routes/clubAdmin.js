@@ -3,7 +3,7 @@ const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
 const config = require('../config');
 const { auth } = require('../middleware/auth');
-const { wrap, HttpError } = require('../middleware/errorHandler');
+const { wrap } = require('../middleware/errorHandler');
 const { query, queryOne } = require('../db/pool');
 const { sendInactivityAlerts } = require('../services/alerts');
 const {
@@ -12,6 +12,8 @@ const {
   ALERT_DAYS_MEDIUM,
   ALERT_DAYS_HIGH,
 } = require('../constants');
+const { body } = require('../models/schemas');
+const { validateBody } = require('../middleware/validate');
 
 const router = express.Router();
 
@@ -173,14 +175,9 @@ router.get(
 
 router.post(
   '/seasons',
+  validateBody(body.createSeason),
   wrap(async (req, res) => {
     const { name, description, start_date, end_date } = req.body;
-    if (!name || !start_date || !end_date) {
-      throw new HttpError(400, 'name, start_date, end_date required');
-    }
-    if (end_date < start_date) {
-      throw new HttpError(400, 'end_date must be >= start_date');
-    }
     const id = uuidv4();
     await query(
       `INSERT INTO seasons(id, club_id, name, description, start_date, end_date)
@@ -205,6 +202,7 @@ router.get(
 
 router.patch(
   '/seasons/:id',
+  validateBody(body.patchSeason),
   wrap(async (req, res) => {
     const { active } = req.body;
     await query(

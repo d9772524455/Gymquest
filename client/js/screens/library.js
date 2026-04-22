@@ -1,19 +1,19 @@
 import { getState } from '../state.js';
 import { EXERCISE_LIBRARY } from '../constants.js';
 import { elt, clearChildren } from '../ui/dom.js';
-import { rW, ensureWorkoutStarted } from './workout.js';
+import { renderWorkoutBuilder, ensureWorkoutStarted } from './workout.js';
 
-export function openLib() {
+export function openLibrary() {
   document.getElementById('lib-m').style.display = 'flex';
   document.getElementById('lib-s').value = '';
-  fLib();
+  filterLibrary();
 }
 
-export function clLib() {
+export function closeLibrary() {
   document.getElementById('lib-m').style.display = 'none';
 }
 
-export function fLib() {
+export function filterLibrary() {
   const s = getState();
   const f = document.getElementById('lib-s').value.toLowerCase();
   const list = document.getElementById('lib-l');
@@ -69,24 +69,24 @@ export function fLib() {
   }
 }
 
-export function aEx(n) {
+export function addExercise(n) {
   const s = getState();
   // Prevent duplicates via the function itself — defence-in-depth even if
   // the delegation target ever leaks through.
   if (s.W.some((e) => e.n === n)) {
-    clLib();
+    closeLibrary();
     return;
   }
   s.W.push({ n, s: [{ r: 10, w: 0 }] });
-  clLib();
-  rW();
+  closeLibrary();
+  renderWorkoutBuilder();
   ensureWorkoutStarted();
 }
 
-export function addC() {
+export function addCustomExercise() {
   const input = document.getElementById('lib-c');
   const n = input.value.trim();
   if (!n) return;
-  aEx(n);
+  addExercise(n);
   input.value = '';
 }

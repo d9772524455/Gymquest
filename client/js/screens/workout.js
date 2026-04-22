@@ -1,13 +1,13 @@
-import { ap } from '../api.js';
+import { apiCall } from '../api.js';
 import { getState } from '../state.js';
-import { fn } from '../constants.js';
+import { formatNumber } from '../constants.js';
 import { elt, clearChildren } from '../ui/dom.js';
-import { ts } from '../ui/toast.js';
+import { showToast } from '../ui/toast.js';
 import { confirmModal } from '../ui/modal.js';
-import { sT, rH } from './home.js';
-import { rP } from './profile.js';
-import { lB } from './board.js';
-import { lHi } from './history.js';
+import { switchTab, renderHome } from './home.js';
+import { renderProfile } from './profile.js';
+import { loadLeaderboard } from './board.js';
+import { loadHistory } from './history.js';
 
 function startTimer() {
   const s = getState();
@@ -19,26 +19,26 @@ function startTimer() {
   }, 1000);
 }
 
-export function startW() {
+export function startWorkout() {
   const s = getState();
   s.W = [];
   s.wSt = Date.now();
-  rW();
-  uWS();
-  sT('workout');
+  renderWorkoutBuilder();
+  updateWorkoutSummary();
+  switchTab('workout');
   startTimer();
 }
 
-export async function canW() {
+export async function cancelWorkout() {
   const s = getState();
   if (s.W.length && !(await confirmModal('Отменить тренировку?'))) return;
   s.W = [];
   if (s.wTi) clearInterval(s.wTi);
   document.getElementById('w-tmr').textContent = '00:00';
-  sT('home');
+  switchTab('home');
 }
 
-export function rW() {
+export function renderWorkoutBuilder() {
   const s = getState();
   const container = document.getElementById('w-exs');
   clearChildren(container);
@@ -131,36 +131,36 @@ export function rW() {
     container.appendChild(card);
   });
 
-  uWS();
+  updateWorkoutSummary();
 }
 
-export function aS(i) {
+export function addSet(i) {
   const s = getState();
   const last = s.W[i].s[s.W[i].s.length - 1] || { r: 10, w: 0 };
   s.W[i].s.push({ r: last.r, w: last.w });
-  rW();
+  renderWorkoutBuilder();
 }
 
-export function rmS(i, j) {
+export function removeSet(i, j) {
   const s = getState();
   if (s.W[i].s.length <= 1) return;
   s.W[i].s.splice(j, 1);
-  rW();
+  renderWorkoutBuilder();
 }
 
-export function rmEx(i) {
+export function removeExercise(i) {
   const s = getState();
   s.W.splice(i, 1);
-  rW();
+  renderWorkoutBuilder();
 }
 
-export function uS(i, j, f, v) {
+export function updateSetField(i, j, f, v) {
   const s = getState();
   s.W[i].s[j][f] = parseFloat(v) || 0;
-  uWS();
+  updateWorkoutSummary();
 }
 
-export function uWS() {
+export function updateWorkoutSummary() {
   const s = getState();
   let totalSets = 0;
   let totalTon = 0;
@@ -169,14 +169,14 @@ export function uWS() {
     totalTon += setData.r * setData.w;
   }));
   document.getElementById('w-ts').textContent = totalSets;
-  document.getElementById('w-tt').textContent = fn(totalTon);
+  document.getElementById('w-tt').textContent = formatNumber(totalTon);
   document.getElementById('w-te').textContent = s.W.length;
 }
 
-export async function finW() {
+export async function finishWorkout() {
   const s = getState();
   if (!s.W.length) {
-    ts('Добавь упражнение', 'var(--red)');
+    showToast('Добавь упражнение', 'var(--red)');
     return;
   }
   const el = Math.max(Math.floor((Date.now() - s.wSt) / 60000), 1);
@@ -188,7 +188,7 @@ export async function finW() {
     weight_kg: Math.round((e.s.reduce((a, x) => a + x.w, 0) / e.s.length) * 10) / 10,
   }));
   try {
-    const r = await ap('/workouts', {
+    const r = await apiCall('/workouts', {
       method: 'POST',
       body: {
         duration_minutes: el,
@@ -198,22 +198,22 @@ export async function finW() {
       },
     });
     let line1 = '🏋️ +' + r.xp_earned + ' XP';
-    if (r.tonnage > 0) line1 += ' • ' + fn(r.tonnage) + 'кг';
+    if (r.tonnage > 0) line1 += ' • ' + formatNumber(r.tonnage) + 'кг';
     line1 += ' • 🔥' + r.streak;
     if (r.level_up) line1 = '🎉 LEVEL UP! ' + line1;
     const lines = [line1];
     if (r.new_achievements?.length) lines.push('🏅 ' + r.new_achievements.map((a) => a.name).join(', '));
-    ts(lines, r.level_up ? 'var(--org)' : 'var(--grn)');
+    showToast(lines, r.level_up ? 'var(--org)' : 'var(--grn)');
     s.W = [];
     document.getElementById('w-tmr').textContent = '00:00';
-    s.P = await ap('/me');
-    rH();
-    rP();
-    lB();
-    lHi();
-    sT('home');
+    s.P = await apiCall('/me');
+    renderHome();
+    renderProfile();
+    loadLeaderboard();
+    loadHistory();
+    switchTab('home');
   } catch (e) {
-    ts(e.message, 'var(--red)');
+    showToast(e.message, 'var(--red)');
   }
 }
 

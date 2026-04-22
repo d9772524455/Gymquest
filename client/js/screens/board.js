@@ -1,13 +1,13 @@
-import { ap } from '../api.js';
+import { apiCall } from '../api.js';
 import { getState } from '../state.js';
 import { HERO_EMOJI } from '../constants.js';
 import { elt, clearChildren } from '../ui/dom.js';
 
-export async function lB() {
+export async function loadLeaderboard() {
   const { cid } = getState();
   if (!cid) return;
   try {
-    const lb = await ap('/leaderboard/' + cid);
+    const lb = await apiCall('/leaderboard/' + cid);
     const container = document.getElementById('lb');
     clearChildren(container);
     if (!lb.length) {

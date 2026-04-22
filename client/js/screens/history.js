@@ -1,9 +1,9 @@
-import { ap } from '../api.js';
+import { apiCall } from '../api.js';
 import { elt, clearChildren } from '../ui/dom.js';
 
-export async function lHi() {
+export async function loadHistory() {
   try {
-    const h = await ap('/workouts/history?limit=15');
+    const h = await apiCall('/workouts/history?limit=15');
     const container = document.getElementById('w-hist');
     clearChildren(container);
     if (!h.length) {

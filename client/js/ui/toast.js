@@ -1,4 +1,4 @@
-export function ts(msg, color) {
+export function showToast(msg, color) {
   const t = document.getElementById('toast');
   while (t.firstChild) t.removeChild(t.firstChild);
   const lines = Array.isArray(msg) ? msg : [String(msg)];

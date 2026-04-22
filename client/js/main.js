@@ -1,48 +1,48 @@
 import { getState } from './state.js';
 import { initAuth } from './screens/auth.js';
-import { go, sT, out, rH, doCI } from './screens/home.js';
-import { rP } from './screens/profile.js';
+import { enterApp, switchTab, logout, renderHome, quickCheckin } from './screens/home.js';
+import { renderProfile } from './screens/profile.js';
 import {
-  startW,
-  finW,
-  canW,
-  aS,
-  rmS,
-  rmEx,
-  uS,
+  startWorkout,
+  finishWorkout,
+  cancelWorkout,
+  addSet,
+  removeSet,
+  removeExercise,
+  updateSetField,
 } from './screens/workout.js';
-import { openLib, clLib, fLib, aEx, addC } from './screens/library.js';
-import { lB } from './screens/board.js';
-import { lHi } from './screens/history.js';
+import { openLibrary, closeLibrary, filterLibrary, addExercise, addCustomExercise } from './screens/library.js';
+import { loadLeaderboard } from './screens/board.js';
+import { loadHistory } from './screens/history.js';
 
 // --- Auth ---
-initAuth(go);
+initAuth(enterApp);
 
 // --- Tab bar ---
 document.querySelectorAll('.tab').forEach((t) =>
-  t.addEventListener('click', () => sT(t.dataset.t))
+  t.addEventListener('click', () => switchTab(t.dataset.t))
 );
 
 // --- Home screen action cards ---
-document.querySelector('[data-action="start-workout"]').addEventListener('click', startW);
-document.querySelector('[data-action="checkin"]').addEventListener('click', doCI);
-document.querySelector('[data-action="board"]').addEventListener('click', () => sT('board'));
+document.querySelector('[data-action="start-workout"]').addEventListener('click', startWorkout);
+document.querySelector('[data-action="checkin"]').addEventListener('click', quickCheckin);
+document.querySelector('[data-action="board"]').addEventListener('click', () => switchTab('board'));
 
 // --- Workout screen ---
-document.querySelector('[data-action="add-exercise"]').addEventListener('click', openLib);
-document.querySelector('[data-action="finish-workout"]').addEventListener('click', finW);
-document.querySelector('[data-action="cancel-workout"]').addEventListener('click', canW);
+document.querySelector('[data-action="add-exercise"]').addEventListener('click', openLibrary);
+document.querySelector('[data-action="finish-workout"]').addEventListener('click', finishWorkout);
+document.querySelector('[data-action="cancel-workout"]').addEventListener('click', cancelWorkout);
 
 // --- Profile logout ---
-document.querySelector('[data-action="logout"]').addEventListener('click', out);
+document.querySelector('[data-action="logout"]').addEventListener('click', logout);
 
 // --- Library modal ---
 document.getElementById('lib-m').addEventListener('click', (e) => {
-  if (e.target === e.currentTarget) clLib();
+  if (e.target === e.currentTarget) closeLibrary();
 });
-document.querySelector('[data-action="close-lib"]').addEventListener('click', clLib);
-document.getElementById('lib-s').addEventListener('input', fLib);
-document.querySelector('[data-action="add-custom"]').addEventListener('click', addC);
+document.querySelector('[data-action="close-lib"]').addEventListener('click', closeLibrary);
+document.getElementById('lib-s').addEventListener('input', filterLibrary);
+document.querySelector('[data-action="add-custom"]').addEventListener('click', addCustomExercise);
 
 // --- Delegation for dynamically-rendered handlers inside #w-exs ---
 document.getElementById('w-exs').addEventListener('click', (e) => {
@@ -52,9 +52,9 @@ document.getElementById('w-exs').addEventListener('click', (e) => {
   const setRow = btn.closest('[data-si]');
   const ei = exCard ? Number(exCard.dataset.ei) : null;
   const si = setRow ? Number(setRow.dataset.si) : null;
-  if (btn.dataset.action === 'add-set' && ei !== null) aS(ei);
-  else if (btn.dataset.action === 'remove-set' && ei !== null && si !== null) rmS(ei, si);
-  else if (btn.dataset.action === 'remove-exercise' && ei !== null) rmEx(ei);
+  if (btn.dataset.action === 'add-set' && ei !== null) addSet(ei);
+  else if (btn.dataset.action === 'remove-set' && ei !== null && si !== null) removeSet(ei, si);
+  else if (btn.dataset.action === 'remove-exercise' && ei !== null) removeExercise(ei);
 });
 
 document.getElementById('w-exs').addEventListener('change', (e) => {
@@ -65,15 +65,15 @@ document.getElementById('w-exs').addEventListener('change', (e) => {
   const ei = Number(exCard.dataset.ei);
   const si = Number(setRow.dataset.si);
   const f = e.target.dataset.field;
-  uS(ei, si, f, e.target.value);
+  updateSetField(ei, si, f, e.target.value);
 });
 
 // --- Library list item clicks (delegation) ---
 document.getElementById('lib-l').addEventListener('click', (e) => {
   const row = e.target.closest('[data-exercise]');
-  if (row) aEx(row.dataset.exercise);
+  if (row) addExercise(row.dataset.exercise);
 });
 
 // --- Auto-login if token present ---
 const state = getState();
-if (state.tk) go();
+if (state.tk) enterApp();

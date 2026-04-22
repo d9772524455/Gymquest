@@ -11,6 +11,6 @@ export const EXERCISE_LIBRARY = [
   { c: 'Кардио', i: ['Бег', 'Велотренажёр', 'Эллипс', 'Гребной тренажёр', 'Скакалка', 'Берпи'] },
 ];
 
-export function fn(n) {
+export function formatNumber(n) {
   return n >= 10000 ? (n / 1000).toFixed(0) + 'k' : n >= 1000 ? (n / 1000).toFixed(1) + 'k' : Math.round(n);
 }

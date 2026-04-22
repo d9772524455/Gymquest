@@ -1,8 +1,8 @@
-import { ap } from '../api.js';
+import { apiCall } from '../api.js';
 import { getState, setToken } from '../state.js';
 import { HERO_COLORS } from '../constants.js';
 
-export function tglAuth() {
+export function toggleAuthMode() {
   const s = getState();
   s.am = s.am === 'login' ? 'register' : 'login';
   document.getElementById('a-nr').style.display = s.am === 'register' ? 'block' : 'none';
@@ -11,7 +11,7 @@ export function tglAuth() {
     s.am === 'register' ? 'Уже есть? Войти' : 'Нет аккаунта? Регистрация';
 }
 
-export function pH(h) {
+export function pickHero(h) {
   const s = getState();
   s.hc = h;
   document.querySelectorAll('.hp').forEach((e) => {
@@ -22,7 +22,7 @@ export function pH(h) {
   document.documentElement.style.setProperty('--hero', HERO_COLORS[h]);
 }
 
-export async function doAuth() {
+export async function submitAuth() {
   const s = getState();
   const cl = document.getElementById('a-club').value.trim();
   const em = document.getElementById('a-email').value.trim();
@@ -34,13 +34,13 @@ export async function doAuth() {
     if (s.am === 'register') {
       const nm = document.getElementById('a-name').value.trim();
       if (!cl || !em || !pw || !nm) throw new Error('Заполните все поля');
-      r = await ap('/members/register', {
+      r = await apiCall('/members/register', {
         method: 'POST',
         body: { club_id: cl, email: em, password: pw, name: nm, hero_class: s.hc },
       });
     } else {
       if (!cl || !em || !pw) throw new Error('Заполните все поля');
-      r = await ap('/members/login', {
+      r = await apiCall('/members/login', {
         method: 'POST',
         body: { club_id: cl, email: em, password: pw },
       });
@@ -56,10 +56,10 @@ export async function doAuth() {
 export function initAuth(onAuthSuccess) {
   document.getElementById('auth-form').addEventListener('submit', (e) => {
     e.preventDefault();
-    doAuth().then(onAuthSuccess).catch(() => {});
+    submitAuth().then(onAuthSuccess).catch(() => {});
   });
-  document.getElementById('a-tgl').addEventListener('click', tglAuth);
+  document.getElementById('a-tgl').addEventListener('click', toggleAuthMode);
   document.querySelectorAll('.hp').forEach((el) => {
-    el.addEventListener('click', () => pH(el.dataset.h));
+    el.addEventListener('click', () => pickHero(el.dataset.h));
   });
 }

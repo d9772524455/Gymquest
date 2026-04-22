@@ -2,7 +2,7 @@ import { getState } from '../state.js';
 import { HERO_EMOJI } from '../constants.js';
 import { elt, clearChildren } from '../ui/dom.js';
 
-export function rP() {
+export function renderProfile() {
   const { P, AA } = getState();
   if (!P) return;
   document.getElementById('p-av').textContent = HERO_EMOJI[P.hero];

@@ -1,6 +1,6 @@
 import { getState, clearAuth } from './state.js';
 
-export async function ap(path, opts = {}) {
+export async function apiCall(path, opts = {}) {
   const state = getState();
   const res = await fetch('/api' + path, {
     ...opts,

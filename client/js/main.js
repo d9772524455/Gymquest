@@ -1,7 +1,6 @@
 import { getState } from './state.js';
 import { initAuth } from './screens/auth.js';
-import { enterApp, switchTab, logout, renderHome, quickCheckin } from './screens/home.js';
-import { renderProfile } from './screens/profile.js';
+import { enterApp, switchTab, logout, quickCheckin } from './screens/home.js';
 import {
   startWorkout,
   finishWorkout,
@@ -12,8 +11,6 @@ import {
   updateSetField,
 } from './screens/workout.js';
 import { openLibrary, closeLibrary, filterLibrary, addExercise, addCustomExercise } from './screens/library.js';
-import { loadLeaderboard } from './screens/board.js';
-import { loadHistory } from './screens/history.js';
 
 // --- Auth ---
 initAuth(enterApp);

@@ -6,3 +6,13 @@ coverage/
 mobile/node_modules/
 server/node_modules/
 ref/
+
+# Vendored minified 3rd-party libs
+**/vendor/**
+
+# Mobile workspace uses JSX — needs @babel/eslint-parser for proper lint.
+# Handled in its own workspace if ever set up; skip from root lint for now.
+mobile/**
+
+# HTML files have embedded JS but no parser configured; scripts already extracted in Phase 2.
+*.html

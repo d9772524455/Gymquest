@@ -1,140 +1,65 @@
 // Gym Quest — Expo Mobile App
-// WebView wrapper + native QR scanner + push notifications + geolocation
-// Install: npx create-expo-app gymquest-mobile && copy this as App.js
+// WebView wrapper + native QR scanner + Android back button
 
 import React, { useState, useEffect, useRef } from "react";
-import { View, StyleSheet, StatusBar, Alert, Platform, BackHandler } from "react-native";
+import { View, Text, StyleSheet, StatusBar, Alert, BackHandler } from "react-native";
 import { WebView } from "react-native-webview";
-import * as Notifications from "expo-notifications";
-import * as Location from "expo-location";
 import { CameraView, useCameraPermissions } from "expo-camera";
-
-// ─── CONFIG ──────────────────────────────────────────────
-
-const API_URL = "https://gymquest.ru"; // Change to your domain
-const CLUB_LOCATION = null; // Set per club: { lat: 55.7558, lng: 37.6173, radius: 50 }
-
-// ─── PUSH NOTIFICATIONS ─────────────────────────────────
-
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
-});
-
-async function registerForPush() {
-  const { status } = await Notifications.requestPermissionsAsync();
-  if (status !== "granted") return null;
-  const token = (await Notifications.getExpoPushTokenAsync()).data;
-  return token;
-}
-
-// ─── MAIN APP ────────────────────────────────────────────
+import { API_URL } from './config';
 
 export default function App() {
   const webviewRef = useRef(null);
   const [showQR, setShowQR] = useState(false);
   const [permission, requestPermission] = useCameraPermissions();
+  const [canGoBack, setCanGoBack] = useState(false);
+  const canGoBackRef = useRef(false);
 
   useEffect(() => {
-    registerForPush().catch(() => {});
-    let geoInterval = null;
-    setupGeofence().then(id => { geoInterval = id; });
+    canGoBackRef.current = canGoBack;
+  }, [canGoBack]);
 
-    // Android back button
+  useEffect(() => {
     const backHandler = BackHandler.addEventListener("hardwareBackPress", () => {
-      if (webviewRef.current) {
+      if (canGoBackRef.current && webviewRef.current) {
         webviewRef.current.goBack();
         return true;
       }
       return false;
     });
-
-    return () => {
-      backHandler.remove();
-      if (geoInterval) clearInterval(geoInterval);
-    };
+    return () => backHandler.remove();
   }, []);
-
-  // ─── GEOFENCE ────────────────────────────────────────
-
-  async function setupGeofence() {
-    if (!CLUB_LOCATION) return;
-    const { status } = await Location.requestForegroundPermissionsAsync();
-    if (status !== "granted") return;
-
-    // Check location every 5 minutes
-    const intervalId = setInterval(async () => {
-      try {
-        const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-        const dist = getDistance(loc.coords.latitude, loc.coords.longitude, CLUB_LOCATION.lat, CLUB_LOCATION.lng);
-        if (dist <= CLUB_LOCATION.radius) {
-          await Notifications.scheduleNotificationAsync({
-            content: { title: "Gym Quest ⚔️", body: "Ты рядом с залом! Зайди и получи XP 🎮" },
-            trigger: null,
-          });
-        }
-      } catch {}
-    }, 5 * 60 * 1000);
-    return intervalId;
-  }
-
-  function getDistance(lat1, lon1, lat2, lon2) {
-    const R = 6371000;
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
-    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  }
-
-  // ─── QR SCANNER ──────────────────────────────────────
 
   function handleBarCodeScanned({ data }) {
     setShowQR(false);
-    // Send QR token to webview
+    // M8 — validate JWT format before passing to WebView
+    if (typeof data !== "string" || !/^[\w-]+\.[\w-]+\.[\w-]+$/.test(data)) {
+      Alert.alert("Неверный QR", "Отсканируйте QR-код Gym Quest");
+      return;
+    }
+    // M1 — JSON.stringify properly escapes the payload for JS-string context
     webviewRef.current?.injectJavaScript(`
-      window.handleQRCheckin && window.handleQRCheckin("${data}");
+      window.handleQRCheckin && window.handleQRCheckin(${JSON.stringify(data)});
       true;
     `);
   }
 
-  // ─── WEBVIEW MESSAGE HANDLER ─────────────────────────
-
   function onMessage(event) {
     try {
       const msg = JSON.parse(event.nativeEvent.data);
-      switch (msg.type) {
-        case "openQR":
-          if (!permission?.granted) {
-            requestPermission().then(p => { if (p.granted) setShowQR(true); });
-          } else {
-            setShowQR(true);
-          }
-          break;
-        case "notification":
-          Notifications.scheduleNotificationAsync({
-            content: { title: msg.title || "Gym Quest", body: msg.body },
-            trigger: null,
-          });
-          break;
-        case "haptic":
-          // Could add expo-haptics here
-          break;
+      if (msg.type === "openQR") {
+        if (!permission?.granted) {
+          requestPermission().then((p) => { if (p.granted) setShowQR(true); }).catch(() => {});
+        } else {
+          setShowQR(true);
+        }
       }
     } catch {}
   }
 
-  // ─── JS TO INJECT INTO WEBVIEW ───────────────────────
-
   const injectedJS = `
-    // Bridge: webview → native
     window.nativeBridge = {
       openQRScanner: () => window.ReactNativeWebView.postMessage(JSON.stringify({ type: "openQR" })),
-      sendNotification: (title, body) => window.ReactNativeWebView.postMessage(JSON.stringify({ type: "notification", title, body })),
     };
-    // QR callback (called from native after scan)
     window.handleQRCheckin = async (token) => {
       try {
         const tk = localStorage.getItem("hq_token");
@@ -154,8 +79,6 @@ export default function App() {
     true;
   `;
 
-  // ─── RENDER ──────────────────────────────────────────
-
   if (showQR) {
     return (
       <View style={styles.container}>
@@ -167,18 +90,10 @@ export default function App() {
         />
         <View style={styles.qrOverlay}>
           <View style={styles.qrFrame} />
-          <View style={styles.qrText}>
-            <View style={styles.qrTextBg}>
-              <StatusBar barStyle="light-content" />
-            </View>
-          </View>
         </View>
         <View style={styles.qrClose}>
-          <View
-            onTouchEnd={() => setShowQR(false)}
-            style={styles.closeBtn}
-          >
-            {/* Close button rendered via WebView text */}
+          <View onTouchEnd={() => setShowQR(false)} style={styles.closeBtn}>
+            <Text style={styles.closeBtnText}>✕</Text>
           </View>
         </View>
       </View>
@@ -194,6 +109,7 @@ export default function App() {
         style={styles.webview}
         injectedJavaScript={injectedJS}
         onMessage={onMessage}
+        onNavigationStateChange={(nav) => setCanGoBack(nav.canGoBack)}
         javaScriptEnabled
         domStorageEnabled
         startInLoadingState
@@ -216,4 +132,5 @@ const styles = StyleSheet.create({
   qrFrame: { width: 250, height: 250, borderWidth: 3, borderColor: "#00e5ff", borderRadius: 20 },
   qrClose: { position: "absolute", top: 60, right: 20 },
   closeBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "center", alignItems: "center" },
+  closeBtnText: { color: "#fff", fontSize: 20, fontWeight: "700", lineHeight: 24 },
 });

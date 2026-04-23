@@ -4,6 +4,34 @@
 > Generated: 2026-04-22, as part of Phase 0 of cleanup project.
 > Spec: https://github.com/zemdenalex — см. локальный `F127 - HeroQuest/docs/superpowers/specs/2026-04-22-gymquest-cleanup-design.md`.
 
+## Phase 3 closure (2026-04-23 — branch `cleanup/phase-3-mobile`)
+
+**Closed in Phase 3:**
+- **M1** (JS-injection через QR) — `handleBarCodeScanned` передаёт `data` через `${JSON.stringify(data)}` в `injectJavaScript`, безопасно эскейпит любой контент.
+- **M2** (геофенс dead code) — `setupGeofence`, `getDistance`, `CLUB_LOCATION` и все references удалены; `expo-location` убрана из `package.json` + `app.json` (plugin-list, iOS location usage descriptions, Android location permissions).
+- **M3** (невидимая QR close-button) — `<Text style={styles.closeBtnText}>✕</Text>` внутри `closeBtn`; стиль `closeBtnText: { color:'#fff', fontSize:20, fontWeight:'700', lineHeight:24 }`.
+- **M4** (nested dead StatusBar) — удалён внутренний `<View>` с `<StatusBar>` внутри `qrText`. Внешний StatusBar на root'е QR-overlay остаётся.
+- **M5** (BackHandler всегда return true) — `canGoBack` state через `onNavigationStateChange` WebView; BackHandler читает через `canGoBackRef.current` (избегает stale closure) и возвращает `false` если `canGoBack===false`, что позволяет системной back на root-экране выйти из приложения.
+- **M6** (hardcoded API_URL) — вынесено в `mobile/config.js` с `__DEV__` ternary. В prod билде `API_URL = 'https://gymquest.ru'`; `DEV_API_URL` закомментирован для переключения на локальный dev-хост.
+- **M7** (expo-notifications без сценария) — полностью удалена: `setNotificationHandler`, `registerForPush`, `notification`/`haptic` кейсы в `onMessage`, `sendNotification` в `injectedJS`, plugin в `app.json`, dep в `package.json`. Убрана permission-модалка при первом запуске.
+- **M8** (QR data не валидируется) — regex `^[\w-]+\.[\w-]+\.[\w-]+$` + `typeof data !== 'string'` check в `handleBarCodeScanned`; нерелевантный QR показывает `Alert.alert('Неверный QR', ...)` и не дёргает bridge.
+
+**File changes:**
+- `mobile/App.js`: 219 → 136 lines
+- `mobile/config.js`: NEW (6 lines)
+- `mobile/package.json`: -2 deps (`expo-location`, `expo-notifications`)
+- `mobile/app.json`: -1 plugin, -2 iOS location descriptions, -2 Android location permissions
+- `mobile/package-lock.json`: regenerated (-28 packages)
+
+**APK v5:** `https://expo.dev/artifacts/eas/mfjyYCVojUsKYSUCznVh26.apk` (valid 30 days from 2026-04-23). EAS build ID: `a3f6a117-49cc-4418-a6b5-0c5a73b1f9b7`. Package `fit.gymquest.app`, same EAS projectId как v4, устанавливается поверх v4 как upgrade.
+
+**Invariants preserved:** `window.handleQRCheckin`, `window.nativeBridge.openQRScanner` bridge names не менялись; `POST /api/qr-checkin` endpoint тот же; EAS projectId `6ba651e5-25d9-4170-903d-61da76ba3678` не менялся.
+
+**Not in budget (unchanged):**
+- iOS / App Store: no Apple Developer account
+- Google Play submission: client declined in Phase 1
+- FCM push setup: separate CR
+
 ## Phase 2 closure (2026-04-23 — branch `cleanup/phase-2-frontend`)
 
 **Closed in Phase 2:**

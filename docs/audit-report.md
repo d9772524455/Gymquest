@@ -4,9 +4,42 @@
 > Generated: 2026-04-22, as part of Phase 0 of cleanup project.
 > Spec: https://github.com/zemdenalex — см. локальный `F127 - HeroQuest/docs/superpowers/specs/2026-04-22-gymquest-cleanup-design.md`.
 
+## Phase 4b closure (2026-04-23 — branch `cleanup/phase-4b-docs`)
+
+**Documentation refresh complete.** Пять документов созданы / обновлены под post-refactor состояние:
+
+- **`README.md`** (refreshed, ~207 lines) — 5-минутный онбординг разработчика. Заменяет Phase 0 baseline.
+- **`CLAUDE.md`** (new, 128 lines) — AI-assistant operational brief: stack snapshot, file layout, non-negotiable invariants (localStorage keys, mobile bridge names, EAS projectId, no-innerHTML, migrations policy, config.js как single env-reader), commands, conventions, gotchas.
+- **`docs/DEPLOY.md`** (new, 371 lines) — reg.ru Cloud bootstrap + certbot + **canonical 443 nginx block template со всеми security headers** (X-Frame-Options, X-Content-Type-Options, X-XSS-Protection, Strict-Transport-Security, Referrer-Policy, Content-Security-Policy) + CI/CD pipeline + rollback + troubleshooting. **Закрывает I2 полностью.**
+- **`docs/API.md`** (new, 697 lines) — 25 API эндпоинтов: path/method/auth/body/response/errors/curl.
+- **`docs/ARCHITECTURE.md`** (new, RU, 80 lines) — client-facing summary Phases 1-4 для Дмитрия.
+
+**Closes:** **I2** — `nginx.conf` в репо остаётся port-80 baseline; `docs/DEPLOY.md` содержит canonical 443 block template со всеми 6 security headers, готовый к copy-paste на VDS. Денис применяет вручную.
+
+**Final audit tally (конец контракта на cleanup):**
+
+| Severity | Closed | Deferred / out-of-budget | Total |
+|---|---|---|---|
+| 🔴 critical | 4 | 0 | 4 |
+| 🟠 high | 17 | 2 (S9 timezone, C7 JWT-in-localStorage) | 19 |
+| 🟡 medium | 18 | 4 | 22 |
+| ⚪ nit | 4 | 5 | 9 |
+| **Total** | **~43** | **~11** | **54** |
+
+**~80% coverage.** Все 4 🔴 critical закрыты (S1, D1, D2, M1). Deferred — осознанные решения:
+
+- **S9 timezone streak** — отдельный CR (DB schema + luxon)
+- **C7 JWT в localStorage** — источники XSS закрыты (C1/C2); httpOnly cookies = отдельный CR
+- **S12 N+1 achievements** — accept (мало данных)
+- **I8 compose version** — confirmed no-op per Phase 0
+- Прочие ⚪ nit — косметика без эксплуатационного эффекта
+
+Client-facing summary в `docs/ARCHITECTURE.md`.
+
 ## Phase 4a closure (2026-04-23 — branch `cleanup/phase-4a-tests-ci`)
 
 **Closed in Phase 4a:**
+
 - **I1** — CI `test` job через inline `node -e` hack удалён из `deploy.yml`. Новый `.github/workflows/ci.yml` владеет CI gate: lint+typecheck/unit/smoke jobs гейтят PR'ы в main.
 - **I3 (partial)** — disclaimer-комментарий в `nginx.conf` с чек-листом security headers (HSTS, CSP, Referrer-Policy) для live 443 блока на VDS. Реальная синхронизация остаётся Plan 6 DEPLOY.md (требует SSH на VDS, не код-change).
 - **I4** — `HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 CMD wget --spider -q http://localhost:3000/api/health` в Dockerfile.
@@ -17,6 +50,7 @@
 - **I10** — `.github/workflows/ci.yml` создан. 3 parallel jobs: `lint-typecheck`, `unit` (node built-in test runner, 35 тестов), `smoke` (postgres:16-alpine service container + migrate + npm start + `npm run smoke`).
 
 **Unit test coverage (Phase 4a, 35 tests total):**
+
 - `server/test/unit/xp.test.js` (17 tests) — `calcLevel` boundaries (0, 499, 500, 1199, 2100, 12500, 15000), `calcXP` (base, mins+streak, streak cap, unknown hero), `getStreakAction` (null, today, yesterday, 2 days ago, Date object input — с `t.mock.timers` для детерминизма)
 - `server/test/unit/geo.test.js` (6 tests) — `getDistance` (same point, Москва↔СПб ~633 km, equator 1° arc ~111 km, antimeridian crossing ~22 km, pole↔equator ~10 007 km, symmetry)
 - `server/test/unit/schemas.test.js` (12 tests) — zod happy+sad для `registerClub` (including email normalization S5), `loginClub` (1-char OK), `createSeason` (D8 date refinement), `createWorkout` (max 50 exercises), `historyQuery` (coerce + defaults)
@@ -24,12 +58,14 @@
 Zero new dependencies: `node --test` + `node:assert/strict` built-in since Node 20.
 
 **Lint baseline fixes (pre-commit, чтобы CI lint job мог стать зелёным):**
+
 - `.eslintignore` расширен: `**/vendor/**` (vendored qrcode.min.js), `mobile/**` (JSX parse errors — отдельный lint setup при необходимости), `*.html`.
 - `.eslintrc.json`: `eqeqeq` теперь allow `== null` / `!= null` idiom.
 - `client/js/main.js` — удалены 4 unused imports (renderHome, renderProfile, loadLeaderboard, loadHistory — вызываются напрямую из workout.js после Task 3 refactor'а).
 - `server/src/db/migrate.js` — `!!clubsCheck.rows[0].t` → `Boolean(clubsCheck.rows[0].t)` (no-implicit-coercion warning).
 
 **Intentionally deferred:**
+
 - **achievements.js unit тесты** — функция требует DB; это integration, не unit. Smoke-test покрывает через `/api/workouts` (первая тренировка unlocks `first_blood`).
 - **mailer.js / alerts.js SMTP** — side-effects, out-of-scope unit test.
 - **I2** (nginx 443 sync с prod) — координация с Денисом на VDS, не код. Disclaimer добавлен; реальный sync в Plan 6 DEPLOY.md с VDS-командами.
@@ -40,6 +76,7 @@ Zero new dependencies: `node --test` + `node:assert/strict` built-in since Node 
 ## Phase 3 closure (2026-04-23 — branch `cleanup/phase-3-mobile`)
 
 **Closed in Phase 3:**
+
 - **M1** (JS-injection через QR) — `handleBarCodeScanned` передаёт `data` через `${JSON.stringify(data)}` в `injectJavaScript`, безопасно эскейпит любой контент.
 - **M2** (геофенс dead code) — `setupGeofence`, `getDistance`, `CLUB_LOCATION` и все references удалены; `expo-location` убрана из `package.json` + `app.json` (plugin-list, iOS location usage descriptions, Android location permissions).
 - **M3** (невидимая QR close-button) — `<Text style={styles.closeBtnText}>✕</Text>` внутри `closeBtn`; стиль `closeBtnText: { color:'#fff', fontSize:20, fontWeight:'700', lineHeight:24 }`.
@@ -50,6 +87,7 @@ Zero new dependencies: `node --test` + `node:assert/strict` built-in since Node 
 - **M8** (QR data не валидируется) — regex `^[\w-]+\.[\w-]+\.[\w-]+$` + `typeof data !== 'string'` check в `handleBarCodeScanned`; нерелевантный QR показывает `Alert.alert('Неверный QR', ...)` и не дёргает bridge.
 
 **File changes:**
+
 - `mobile/App.js`: 219 → 136 lines
 - `mobile/config.js`: NEW (6 lines)
 - `mobile/package.json`: -2 deps (`expo-location`, `expo-notifications`)
@@ -61,6 +99,7 @@ Zero new dependencies: `node --test` + `node:assert/strict` built-in since Node 
 **Invariants preserved:** `window.handleQRCheckin`, `window.nativeBridge.openQRScanner` bridge names не менялись; `POST /api/qr-checkin` endpoint тот же; EAS projectId `6ba651e5-25d9-4170-903d-61da76ba3678` не менялся.
 
 **Not in budget (unchanged):**
+
 - iOS / App Store: no Apple Developer account
 - Google Play submission: client declined in Phase 1
 - FCM push setup: separate CR
@@ -68,6 +107,7 @@ Zero new dependencies: `node --test` + `node:assert/strict` built-in since Node 
 ## Phase 2 closure (2026-04-23 — branch `cleanup/phase-2-frontend`)
 
 **Closed in Phase 2:**
+
 - **C1, C2** — XSS в leaderboard + custom exercise: `elt()` DOM-builder в `client/js/screens/board.js`, `workout.js`, `library.js`. Все пользовательские строки идут через `text:` → `textContent`.
 - **C3** — 401 handling: `client/js/api.js` чистит auth + reload на 401, но только если `state.tk` был установлен (иначе — ошибка показывается в `#a-err`).
 - **C4** — `confirm()` заменён на `confirmModal()` в `client/js/ui/modal.js` (Promise-based).
@@ -83,6 +123,7 @@ Zero new dependencies: `node --test` + `node:assert/strict` built-in since Node 
 - **D9** — persistent Club ID banner в `dashboard/index.html` (`#d-club-id-banner`) показывается после auth; копирование через `copyToClipboard()` + success toast.
 
 **Architecture changes:**
+
 - Inline `<style>` и `<script>` полностью вынесены из `client/index.html` (194 → ~108 строк) и `dashboard/index.html` (272 → ~108 строк).
 - `shared/css/tokens.css` — единый источник правды для CSS custom properties, подключается к обоим фронтам.
 - `server/src/routes/static.js` монтирует `/shared` для tokens.css.
@@ -90,11 +131,13 @@ Zero new dependencies: `node --test` + `node:assert/strict` built-in since Node 
 - 14 модулей клиента + 13 модулей дашборда + 1 vendored библиотека.
 
 **Non-regression invariants held:**
+
 - localStorage ключи byte-for-byte: `hq_token`, `hq_club`, `hq_dtoken`, `hq_dclub`.
 - API контракт не менялся (grep-verified).
 - `grep -rn 'innerHTML' client/js/ dashboard/js/` → empty (security invariant).
 
 **Remaining out-of-budget (unchanged since spec):**
+
 - C7 (JWT в localStorage) — документирован как known risk; attack vector закрыт через C1/C2.
 - S9 (timezone streak) — отдельный CR, требует DB-миграции.
 - S12 (N+1 achievements) — мало данных, не стоит времени.
@@ -104,24 +147,24 @@ Zero new dependencies: `node --test` + `node:assert/strict` built-in since Node 
 
 ## Legend
 
-| Критичность | Что означает |
-|---|---|
+| Критичность | Что означает                                                                                    |
+| ----------- | ----------------------------------------------------------------------------------------------- |
 | 🔴 critical | Угроза безопасности или "ломает прод прямо сейчас". Hotfix-escape — фиксится до начала Phase 1. |
-| 🟠 high | Ошибка корректности / отсутствие валидации / данные можно попортить. Фикс в Phase 1-3. |
-| 🟡 medium | DX / code quality / minor bugs. Если есть время. |
-| ⚪ nit | Косметика / стиль. |
+| 🟠 high     | Ошибка корректности / отсутствие валидации / данные можно попортить. Фикс в Phase 1-3.          |
+| 🟡 medium   | DX / code quality / minor bugs. Если есть время.                                                |
+| ⚪ nit      | Косметика / стиль.                                                                              |
 
 ## Summary
 
 Всего найдено: **54** проблемы.
 
-| Severity | Count | В бюджет Phase 1-4 | Out of budget |
-|---|---|---|---|
-| 🔴 critical | 4 | 3 (все через hotfix-escape) | 1 (timezone — отдельный CR) |
-| 🟠 high | 19 | ~18 | ~1 |
-| 🟡 medium | 22 | ~18 | ~4 |
-| ⚪ nit | 9 | ~4 | ~5 |
-| **Всего** | **54** | **~43** | **~11** |
+| Severity    | Count  | В бюджет Phase 1-4          | Out of budget               |
+| ----------- | ------ | --------------------------- | --------------------------- |
+| 🔴 critical | 4      | 3 (все через hotfix-escape) | 1 (timezone — отдельный CR) |
+| 🟠 high     | 19     | ~18                         | ~1                          |
+| 🟡 medium   | 22     | ~18                         | ~4                          |
+| ⚪ nit      | 9      | ~4                          | ~5                          |
+| **Всего**   | **54** | **~43**                     | **~11**                     |
 
 ### 🔴 Critical bugs (hotfix-escape)
 
@@ -133,6 +176,7 @@ Zero new dependencies: `node --test` + `node:assert/strict` built-in since Node 
 4. **M1** — `mobile/App.js:97-100` — JS-injection через QR-код. Низкая вероятность эксплоита (мало APK в поле), но фикс в 3 строки. Включить либо в hotfix D1+D2, либо в Phase 3.
 
 **Hotfix-план:**
+
 - Branch `hotfix/xss-dashboard` после merge Phase 0
 - Fix D1 + D2 через `textContent`-based render в обеих функциях
 - Optional: M1 в том же PR или отдельно в Phase 3
@@ -140,12 +184,12 @@ Zero new dependencies: `node --test` + `node:assert/strict` built-in since Node 
 
 ### Out of budget (с обоснованием)
 
-| Bug | Почему не входит |
-|---|---|
-| S9 (timezone) | Затрагивает DB schema + business logic, отдельный большой фичер |
-| C7 (JWT localStorage) | Решается через XSS-фиксы C1/C2. Переезд на httpOnly cookie — отдельный CR |
-| S12 (N+1 achievements) | Мало данных, не стоит времени |
-| I8 (compose version) | На v2 работает как есть |
+| Bug                    | Почему не входит                                                          |
+| ---------------------- | ------------------------------------------------------------------------- |
+| S9 (timezone)          | Затрагивает DB schema + business logic, отдельный большой фичер           |
+| C7 (JWT localStorage)  | Решается через XSS-фиксы C1/C2. Переезд на httpOnly cookie — отдельный CR |
+| S12 (N+1 achievements) | Мало данных, не стоит времени                                             |
+| I8 (compose version)   | На v2 работает как есть                                                   |
 
 ### Baseline метрики (до Phase 1)
 
@@ -170,7 +214,7 @@ Zero new dependencies: `node --test` + `node:assert/strict` built-in since Node 
 - **Что сломано:**
 
 ```js
-const JWT_SECRET = process.env.JWT_SECRET || "hq_dev_secret_change_in_prod";
+const JWT_SECRET = process.env.JWT_SECRET || 'hq_dev_secret_change_in_prod';
 ```
 
 Если `JWT_SECRET` env-переменная не установлена в проде (например, опечатка в `.env`), сервер стартует с известным dev-секретом. Атакующий, знающий стек, может форжить JWT-токены любого клуба/атлета.
@@ -189,7 +233,7 @@ const JWT_SECRET = process.env.JWT_SECRET || "hq_dev_secret_change_in_prod";
 - **Что сломано:**
 
 ```js
-ssl: isProd ? { rejectUnauthorized: false } : false
+ssl: isProd ? { rejectUnauthorized: false } : false;
 ```
 
 MITM к Postgres не будет обнаружен. На одном хосте (прямо сейчас на этом VDS) это не критично, но если база когда-либо переедет на managed Postgres — это дыра. Также `isProd` forces SSL, но наш self-signed cert в `db-ssl/` не валидируется.
@@ -285,7 +329,7 @@ if (rateLimit) { app.use(...); }
 - **Что сломано:**
 
 ```js
-const today = new Date().toISOString().split("T")[0];
+const today = new Date().toISOString().split('T')[0];
 ```
 
 Всегда UTC-дата. Для пользователя в Москве (UTC+3), тренировка в 02:00 мск → UTC 23:00 предыдущего дня → `last_w = YYYY-MM-DD` прошлый день. Следующая тренировка в 12:00 мск получит `continue` как будто это соседний день, хотя прошло 1.5 суток по locale.
@@ -411,7 +455,7 @@ const limit = z.coerce.number().int().min(1).max(100).default(20).parse(req.quer
 - **Что сломано:**
 
 ```js
-'<div>'+m.name+(m.is_you?" (ты)":"")+'</div>'
+'<div>' + m.name + (m.is_you ? ' (ты)' : '') + '</div>';
 ```
 
 `m.name` берётся напрямую из `/api/leaderboard/:club_id` и вставляется в HTML-строку. Любой член клуба может зарегистрироваться с именем содержащим скрипт-теги (сервер не санитизирует, см. S4 nameless/reject). Когда другие члены открывают рейтинг — чужой скрипт выполняется в их WebView.
@@ -560,7 +604,8 @@ const limit = z.coerce.number().int().min(1).max(100).default(20).parse(req.quer
 - **Что сломано:**
 
 ```js
-const url="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data="+encodeURIComponent(r.qr_token);
+const url =
+  'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodeURIComponent(r.qr_token);
 ```
 
 QR-токен (JWT с подписью) уходит на сторонний сервис как часть URL → пишется в их логи. Токен действует 24h, даёт право на workout checkin от имени _любого_ атлета в клубе.
@@ -702,10 +747,10 @@ webviewRef.current?.injectJavaScript(`
 - **Что сломано:**
 
 ```js
-BackHandler.addEventListener("hardwareBackPress", () => {
+BackHandler.addEventListener('hardwareBackPress', () => {
   if (webviewRef.current) {
     webviewRef.current.goBack();
-    return true;  // always blocks Android back
+    return true; // always blocks Android back
   }
   return false;
 });

@@ -1,0 +1,53 @@
+# Git metadata + IDE
+.git
+.github
+.gitignore
+.vscode
+.idea
+.DS_Store
+Thumbs.db
+
+# Node modules — Dockerfile does its own `npm ci`
+**/node_modules
+npm-debug.log*
+
+# Environment (never ship into image)
+.env
+.env.local
+.env.production
+**/.env
+**/.env.local
+
+# SSL keys live on host, bind-mounted at runtime
+db-ssl/
+
+# Build outputs
+**/dist
+**/build
+**/.expo
+**/.expo-shared
+
+# Logs and editor junk
+*.log
+*.swp
+*.swo
+
+# Tests, docs, misc
+**/test
+docs/
+*.md
+!README.md
+!CLAUDE.md
+scripts/
+ecosystem.config.js
+docker-compose.yml
+docker-compose.override.yml
+
+# Mobile workspace — not in this image
+mobile/
+
+# Random artefacts
+*.apk
+app.html
+app-after.html
+dash.html

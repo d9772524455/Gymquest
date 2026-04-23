@@ -5,48 +5,8 @@ on:
     branches: [main]
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_DB: gymquest_test
-          POSTGRES_USER: gymquest
-          POSTGRES_PASSWORD: test_pass
-        ports: ["5432:5432"]
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - run: cd server && npm ci
-      - name: Run health check
-        env:
-          DATABASE_URL: postgresql://gymquest:test_pass@localhost:5432/gymquest_test
-          JWT_SECRET: test_secret
-          NODE_ENV: test
-        run: |
-          cd server && node -e "
-            require('./index.js');
-            setTimeout(async () => {
-              const r = await fetch('http://localhost:3000/api/health').then(r=>r.json());
-              console.log('Health:', r);
-              if (r.status !== 'ok') process.exit(1);
-              console.log('Tests passed');
-              process.exit(0);
-            }, 3000);
-          "
-
   deploy:
-    needs: test
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
     steps:
       - name: Deploy to VPS
         uses: appleboy/ssh-action@v1

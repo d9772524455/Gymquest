@@ -1,0 +1,92 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  lint-typecheck:
+    name: Lint + typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: cd server && npm ci
+      - run: npm run lint
+      - run: cd server && npm run typecheck
+
+  unit:
+    name: Server unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: cd server && npm ci
+      - run: cd server && npm test
+
+  smoke:
+    name: Smoke (API happy-path)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: gymquest_ci
+          POSTGRES_USER: gymquest
+          POSTGRES_PASSWORD: ci_pass
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install deps (root + server)
+        run: |
+          npm ci
+          cd server && npm ci
+      - name: Generate random JWT_SECRET
+        id: secret
+        run: echo "jwt_secret=$(openssl rand -hex 32)" >> "$GITHUB_OUTPUT"
+      - name: Run migrations
+        env:
+          DATABASE_URL: postgresql://gymquest:ci_pass@localhost:5432/gymquest_ci
+          NODE_ENV: test
+          DB_SSL_MODE: disable
+        run: cd server && npm run migrate
+      - name: Start API in background
+        env:
+          DATABASE_URL: postgresql://gymquest:ci_pass@localhost:5432/gymquest_ci
+          JWT_SECRET: ${{ steps.secret.outputs.jwt_secret }}
+          NODE_ENV: test
+          DB_SSL_MODE: disable
+          PORT: 3000
+        run: |
+          cd server && npm start &
+          echo $! > /tmp/api.pid
+          for i in $(seq 1 30); do
+            if curl -fsS http://localhost:3000/api/health >/dev/null 2>&1; then
+              echo "API up after ${i}s"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "API did not start within 30s"
+          kill $(cat /tmp/api.pid) 2>/dev/null || true
+          exit 1
+      - name: Run smoke
+        run: npm run smoke
+      - name: Stop API
+        if: always()
+        run: kill $(cat /tmp/api.pid) 2>/dev/null || true

@@ -35,7 +35,7 @@ async function ensureMigrationsTable(pool) {
 
 async function maybeBootstrapExistingSchema(pool) {
   const clubsCheck = await pool.query("SELECT to_regclass('clubs') AS t");
-  const clubsExists = !!clubsCheck.rows[0].t;
+  const clubsExists = Boolean(clubsCheck.rows[0].t);
   if (!clubsExists) return false;
 
   const count = await pool.query('SELECT COUNT(*)::int AS c FROM _migrations');

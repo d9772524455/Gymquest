@@ -8,7 +8,8 @@
     "dev": "node --watch index.js",
     "pm2": "pm2 start ../ecosystem.config.js",
     "typecheck": "tsc --noEmit -p jsconfig.json || true",
-    "migrate": "node src/db/migrate.js"
+    "migrate": "node src/db/migrate.js",
+    "test": "node --test \"test/unit/**/*.test.js\""
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

@@ -4,6 +4,39 @@
 > Generated: 2026-04-22, as part of Phase 0 of cleanup project.
 > Spec: https://github.com/zemdenalex — см. локальный `F127 - HeroQuest/docs/superpowers/specs/2026-04-22-gymquest-cleanup-design.md`.
 
+## Phase 4a closure (2026-04-23 — branch `cleanup/phase-4a-tests-ci`)
+
+**Closed in Phase 4a:**
+- **I1** — CI `test` job через inline `node -e` hack удалён из `deploy.yml`. Новый `.github/workflows/ci.yml` владеет CI gate: lint+typecheck/unit/smoke jobs гейтят PR'ы в main.
+- **I3 (partial)** — disclaimer-комментарий в `nginx.conf` с чек-листом security headers (HSTS, CSP, Referrer-Policy) для live 443 блока на VDS. Реальная синхронизация остаётся Plan 6 DEPLOY.md (требует SSH на VDS, не код-change).
+- **I4** — `HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 CMD wget --spider -q http://localhost:3000/api/health` в Dockerfile.
+- **I5** — `.dockerignore` на корне исключает `node_modules`, `.env`, `db-ssl/`, `**/test`, `docs/`, `mobile/`, `*.apk`, editor junk.
+- **I6** — корневой `.env.example` с docker-compose vars (POSTGRES_DB/USER/PASSWORD, JWT_SECRET, NODE_ENV). `server/.env.example` остаётся для без-docker сценариев.
+- **I7** — `scripts/generate-db-ssl.sh`: openssl-oneliner генерит `db-ssl/server.{crt,key}` с 10-year cert для docker-compose bind-mount'а.
+- **I9** — `test_secret` в workflow заменён на runtime `openssl rand -hex 32` через `$GITHUB_OUTPUT`.
+- **I10** — `.github/workflows/ci.yml` создан. 3 parallel jobs: `lint-typecheck`, `unit` (node built-in test runner, 35 тестов), `smoke` (postgres:16-alpine service container + migrate + npm start + `npm run smoke`).
+
+**Unit test coverage (Phase 4a, 35 tests total):**
+- `server/test/unit/xp.test.js` (17 tests) — `calcLevel` boundaries (0, 499, 500, 1199, 2100, 12500, 15000), `calcXP` (base, mins+streak, streak cap, unknown hero), `getStreakAction` (null, today, yesterday, 2 days ago, Date object input — с `t.mock.timers` для детерминизма)
+- `server/test/unit/geo.test.js` (6 tests) — `getDistance` (same point, Москва↔СПб ~633 km, equator 1° arc ~111 km, antimeridian crossing ~22 km, pole↔equator ~10 007 km, symmetry)
+- `server/test/unit/schemas.test.js` (12 tests) — zod happy+sad для `registerClub` (including email normalization S5), `loginClub` (1-char OK), `createSeason` (D8 date refinement), `createWorkout` (max 50 exercises), `historyQuery` (coerce + defaults)
+
+Zero new dependencies: `node --test` + `node:assert/strict` built-in since Node 20.
+
+**Lint baseline fixes (pre-commit, чтобы CI lint job мог стать зелёным):**
+- `.eslintignore` расширен: `**/vendor/**` (vendored qrcode.min.js), `mobile/**` (JSX parse errors — отдельный lint setup при необходимости), `*.html`.
+- `.eslintrc.json`: `eqeqeq` теперь allow `== null` / `!= null` idiom.
+- `client/js/main.js` — удалены 4 unused imports (renderHome, renderProfile, loadLeaderboard, loadHistory — вызываются напрямую из workout.js после Task 3 refactor'а).
+- `server/src/db/migrate.js` — `!!clubsCheck.rows[0].t` → `Boolean(clubsCheck.rows[0].t)` (no-implicit-coercion warning).
+
+**Intentionally deferred:**
+- **achievements.js unit тесты** — функция требует DB; это integration, не unit. Smoke-test покрывает через `/api/workouts` (первая тренировка unlocks `first_blood`).
+- **mailer.js / alerts.js SMTP** — side-effects, out-of-scope unit test.
+- **I2** (nginx 443 sync с prod) — координация с Денисом на VDS, не код. Disclaimer добавлен; реальный sync в Plan 6 DEPLOY.md с VDS-командами.
+- **Typecheck tightening** — `server/package.json` `typecheck` script имеет `|| true` мягкий гейт. Pre-existing 3 tsc errors (schemas.js enum, server.js Function.listen, mailer.js nodemailer.Transporter) — требуют `@types/*` deps или JSDoc-аннотаций. Phase 4a не чинит — отдельный CR.
+
+**Remaining in Phase 4b (Plan 6):** docs only — README.md refresh, CLAUDE.md update, new `docs/DEPLOY.md`, new `docs/API.md`, new `docs/ARCHITECTURE.md`.
+
 ## Phase 3 closure (2026-04-23 — branch `cleanup/phase-3-mobile`)
 
 **Closed in Phase 3:**

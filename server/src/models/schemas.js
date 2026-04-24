@@ -8,38 +8,38 @@ const { HERO_CLASSES } = require('../constants');
 // ─── SHARED PRIMITIVES ────────────────────────────────────
 
 const emailSchema = z
-  .string({ required_error: 'email required' })
+  .string({ required_error: 'email обязателен' })
   .trim()
   .toLowerCase()
-  .email('email must be a valid address')
+  .email('некорректный email')
   .max(254); // RFC 5321
 
 const passwordRegisterSchema = z
-  .string({ required_error: 'password required' })
-  .min(8, 'password must be ≥ 8 characters')
-  .max(128, 'password must be ≤ 128 characters');
+  .string({ required_error: 'пароль обязателен' })
+  .min(8, 'пароль минимум 8 символов')
+  .max(128, 'пароль максимум 128 символов');
 
 const passwordLoginSchema = z
-  .string({ required_error: 'password required' })
-  .min(1, 'password required')
+  .string({ required_error: 'пароль обязателен' })
+  .min(1, 'пароль обязателен')
   .max(128);
 
-const uuidSchema = z.string().uuid('must be a UUID');
+const uuidSchema = z.string().uuid('должен быть UUID (спросите у администратора клуба)');
 
 const shortText = (field, max = 200) =>
-  z.string({ required_error: `${field} required` }).trim().min(1, `${field} required`).max(max);
+  z.string({ required_error: `${field}: обязательное поле` }).trim().min(1, `${field}: обязательное поле`).max(max);
 
 const slugSchema = z
-  .string({ required_error: 'slug required' })
+  .string({ required_error: 'slug обязателен' })
   .trim()
   .toLowerCase()
-  .min(2, 'slug too short')
-  .max(60, 'slug too long')
-  .regex(/^[a-z0-9][a-z0-9-]*$/i, 'slug must be alphanumeric with dashes, start alphanum');
+  .min(2, 'slug слишком короткий (минимум 2)')
+  .max(60, 'slug слишком длинный (максимум 60)')
+  .regex(/^[a-z0-9][a-z0-9-]*$/i, 'slug: только латиница/цифры/дефис');
 
 const dateISOSchema = z
-  .string({ required_error: 'date required' })
-  .regex(/^\d{4}-\d{2}-\d{2}$/, 'date must be YYYY-MM-DD');
+  .string({ required_error: 'дата обязательна' })
+  .regex(/^\d{4}-\d{2}-\d{2}$/, 'дата в формате YYYY-MM-DD');
 
 // ─── BODY SCHEMAS ─────────────────────────────────────────
 
@@ -89,7 +89,7 @@ const createWorkout = z.object({
 });
 
 const qrCheckin = z.object({
-  qr_token: z.string().min(1, 'qr_token required').max(2000),
+  qr_token: z.string().min(1, 'qr_token обязателен').max(2000),
 });
 
 const createSeason = z
@@ -100,7 +100,7 @@ const createSeason = z
     end_date: dateISOSchema,
   })
   .refine((s) => s.end_date >= s.start_date, {
-    message: 'end_date must be >= start_date',
+    message: 'end_date должен быть >= start_date',
     path: ['end_date'],
   });
 

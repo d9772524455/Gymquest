@@ -15,21 +15,37 @@
 <div id="auth" class="screen active fade" style="display:flex;min-height:100vh;flex-direction:column;align-items:center;justify-content:center;padding:20px">
 <div class="orb" style="font-size:32px;font-weight:900;color:var(--cyan);text-shadow:0 0 30px rgba(0,229,255,.25)">GYM QUEST</div>
 <div style="font-size:11px;color:var(--mut);letter-spacing:3px;margin:6px 0 36px">RPG FITNESS ENGINE</div>
-<form id="auth-form" style="width:100%;max-width:340px">
-<input id="a-club" placeholder="Club ID">
-<div id="a-nr" style="display:none"><input id="a-name" placeholder="Имя"></div>
-<input id="a-email" placeholder="Email" type="email">
-<input id="a-pass" placeholder="Пароль" type="password">
-<div id="a-heroes" style="display:none;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px">
+
+<form id="auth-login-form" style="width:100%;max-width:340px">
+<input id="al-club" placeholder="Club ID (UUID)" autocomplete="off">
+<div style="font-size:11px;color:var(--mut);margin:-6px 0 10px">UUID клуба — спросите у администратора</div>
+<input id="al-email" placeholder="Email" type="email" autocomplete="email">
+<input id="al-pass" placeholder="Пароль" type="password" autocomplete="current-password">
+<div id="al-err" style="color:var(--red);font-size:12px;text-align:center;margin-bottom:10px;display:none"></div>
+<button class="btn" type="submit">ВОЙТИ</button>
+<div style="text-align:center;margin-bottom:16px"><span id="to-register" style="color:var(--acc);font-size:13px;cursor:pointer">Нет аккаунта? Зарегистрироваться</span></div>
+<a href="/download" class="btn btn-sec" style="text-align:center;text-decoration:none;display:block">&#128241; Скачать приложение</a>
+</form>
+
+<form id="auth-register-form" style="width:100%;max-width:340px;display:none">
+<input id="ar-club" placeholder="Club ID (UUID)" autocomplete="off">
+<div style="font-size:11px;color:var(--mut);margin:-6px 0 10px">UUID клуба — спросите у администратора</div>
+<input id="ar-name" placeholder="Имя" autocomplete="name">
+<input id="ar-email" placeholder="Email" type="email" autocomplete="email">
+<input id="ar-pass" placeholder="Пароль (минимум 8 символов)" type="password" autocomplete="new-password">
+<div id="ar-heroes" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px">
 <div class="hp on" data-h="warrior"><div style="font-size:26px">&#9876;&#65039;</div><div class="mono" style="font-size:9px;margin-top:4px;color:var(--hero)">Воин</div></div>
 <div class="hp" data-h="runner"><div style="font-size:26px">&#9889;</div><div class="mono" style="font-size:9px;margin-top:4px">Бегун</div></div>
 <div class="hp" data-h="monk"><div style="font-size:26px">&#129496;</div><div class="mono" style="font-size:9px;margin-top:4px">Монах</div></div>
 <div class="hp" data-h="titan"><div style="font-size:26px">&#128293;</div><div class="mono" style="font-size:9px;margin-top:4px">Титан</div></div>
 </div>
-<div id="a-err" style="color:var(--red);font-size:12px;text-align:center;margin-bottom:10px;display:none"></div>
-<button class="btn" type="submit">ВОЙТИ</button>
-<div style="text-align:center"><span id="a-tgl" style="color:var(--acc);font-size:13px;cursor:pointer">Нет аккаунта? Регистрация</span></div>
-</form></div>
+<div id="ar-err" style="color:var(--red);font-size:12px;text-align:center;margin-bottom:10px;display:none"></div>
+<button class="btn" type="submit">СОЗДАТЬ АККАУНТ</button>
+<div style="text-align:center;margin-bottom:16px"><span id="to-login" style="color:var(--acc);font-size:13px;cursor:pointer">&#8592; Уже есть аккаунт? Войти</span></div>
+<a href="/download" class="btn btn-sec" style="text-align:center;text-decoration:none;display:block">&#128241; Скачать приложение</a>
+</form>
+
+</div>
 
 <div id="app" style="display:none">
 <div id="s-home" class="screen active fade">

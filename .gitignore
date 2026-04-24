@@ -22,3 +22,7 @@ build/
 *.log
 
 .worktrees/
+
+# APK artefacts served via /download — placed on VDS manually, do not commit
+public/*.apk
+!public/.gitkeep

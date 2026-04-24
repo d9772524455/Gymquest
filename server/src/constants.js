@@ -50,6 +50,7 @@ const RATE_LIMITS = {
   login: { windowMs: 15 * 60 * 1000, max: 10 },
   registerClub: { windowMs: 60 * 60 * 1000, max: 5 },
   registerMember: { windowMs: 60 * 60 * 1000, max: 20 },
+  apkDownload: { windowMs: 60 * 1000, max: 10 },
 };
 
 /** JWT expiry windows. */

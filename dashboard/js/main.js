@@ -4,7 +4,7 @@ import { dLoadAlerts } from './screens/alerts.js';
 import { dLoadMembers } from './screens/members.js';
 import { renderQR } from './screens/qr.js';
 import { loadSeasons, createSeason } from './screens/seasons.js';
-import { dLogin, dRegister, dToggle } from './screens/auth.js';
+import { dLogin, dRegister, showDLogin, showDRegister } from './screens/auth.js';
 import { showToast } from './ui/toast.js';
 import { copyToClipboard } from './ui/clipboard.js';
 
@@ -44,7 +44,14 @@ document.getElementById('d-register-form').addEventListener('submit', async (e) 
   e.preventDefault();
   if (await dRegister()) enterDashboard();
 });
-document.getElementById('d-toggle').addEventListener('click', dToggle);
+document.getElementById('d-to-register').addEventListener('click', showDRegister);
+document.getElementById('d-to-register').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); showDRegister(); }
+});
+document.getElementById('d-to-login').addEventListener('click', showDLogin);
+document.getElementById('d-to-login').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); showDLogin(); }
+});
 
 // Tab bar
 document.querySelectorAll('.tab').forEach((t) => t.addEventListener('click', () => dTab(t.dataset.t)));

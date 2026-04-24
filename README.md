@@ -152,6 +152,15 @@ eas build --platform android --profile preview     # build production APK
 APK v5 was delivered to the client via EAS build URL (expires ~30 days after build date —
 check the EAS dashboard for active builds if you need to re-download).
 
+The server also serves the current APK directly:
+
+- `GET /download` — streams `gymquest.apk` with correct `Content-Disposition`. Returns
+  `503` when the APK has not yet been uploaded. Rate-limited to 10 requests/min per IP.
+- The APK file is **not** in git or the Docker image; it lives on the VDS at
+  `/opt/gymquest/public/gymquest.apk` (bind-mounted read-only into the container).
+  See [docs/DEPLOY.md](docs/DEPLOY.md) for how to upload a new build via
+  `scripts/upload-apk.sh`.
+
 Push notifications and geofencing are disabled in the current APK (require FCM +
 `google-services.json`; out of scope for this contract).
 

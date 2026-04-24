@@ -36,4 +36,12 @@ const registerMember = rateLimit({
   message: { error: 'Too many registrations' },
 });
 
-module.exports = { general, login, registerClub, registerMember };
+const apkDownload = rateLimit({
+  windowMs: RATE_LIMITS.apkDownload.windowMs,
+  max: RATE_LIMITS.apkDownload.max,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many download requests, try again later' },
+});
+
+module.exports = { general, login, registerClub, registerMember, apkDownload };

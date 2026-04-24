@@ -76,6 +76,35 @@ test('body.registerClub: missing email → ZodError', () => {
   );
 });
 
+test('body.registerClub: short password message is in Russian', () => {
+  const result = body.registerClub.safeParse({
+    name: 'Club',
+    slug: 'club',
+    email: 'a@b.com',
+    password: 'short',
+  });
+  assert.equal(result.success, false);
+  const pwIssue = result.error.issues.find((i) => i.path.join('.') === 'password');
+  assert.ok(pwIssue);
+  assert.match(pwIssue.message, /минимум 8 символов/);
+});
+
+// ─── body.registerMember ─────────────────────────────────
+
+test('body.registerMember: invalid club_id message is in Russian', () => {
+  const result = body.registerMember.safeParse({
+    club_id: 'not-a-uuid',
+    email: 'a@b.com',
+    password: 'password123',
+    name: 'Athlete',
+  });
+  assert.equal(result.success, false);
+  const clubIdIssue = result.error.issues.find((i) => i.path.join('.') === 'club_id');
+  assert.ok(clubIdIssue, 'expected club_id issue');
+  assert.match(clubIdIssue.message, /UUID/);
+  assert.match(clubIdIssue.message, /администратор/);
+});
+
 // ─── body.loginClub ───────────────────────────────────────
 
 test('body.loginClub: 1-char password accepted (min 1 on login)', () => {

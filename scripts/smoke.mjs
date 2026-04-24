@@ -133,7 +133,7 @@ async function step7_qrCheckin(qrToken) {
   ok('qr checkin', `+${r.data.xp_earned}XP`);
 }
 
-async function step9_downloadRoute() {
+async function step8_downloadRoute() {
   const r = await api.get('/download', { maxRedirects: 0 });
   if (r.status !== 503 && r.status !== 200) {
     fail('GET /download', r);
@@ -147,7 +147,7 @@ async function step9_downloadRoute() {
   ok('GET /download', `status=${r.status}`);
 }
 
-async function step8_cleanup() {
+async function step9_cleanup() {
   // DELETE /api/clubs/:id doesn't exist yet (bug S15 — will be added in Phase 1).
   // For now: best-effort, log the "no endpoint" warning and leave test data.
   // Manual cleanup via SSH + psql when running against prod.
@@ -180,8 +180,8 @@ async function main() {
   await step5_leaderboard();
   const qr = await step6_qrToken();
   await step7_qrCheckin(qr);
-  await step9_downloadRoute();
-  await step8_cleanup();
+  await step8_downloadRoute();
+  await step9_cleanup();
   console.log('');
   console.log('✓ All smoke checks passed');
 }

@@ -2,6 +2,8 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 
+const { apkDownload } = require('../middleware/rateLimit');
+
 const router = express.Router();
 
 const APK_PATH = path.join(__dirname, '..', '..', '..', 'public', 'gymquest.apk');
@@ -10,7 +12,7 @@ router.use('/app', express.static(path.join(__dirname, '..', '..', '..', 'client
 router.use('/dashboard', express.static(path.join(__dirname, '..', '..', '..', 'dashboard')));
 router.use('/shared', express.static(path.join(__dirname, '..', '..', '..', 'shared')));
 
-router.get('/download', (_req, res) => {
+router.get('/download', apkDownload, (_req, res) => {
   if (!fs.existsSync(APK_PATH)) {
     return res.status(503).json({
       error: { code: 'APK_UNAVAILABLE', message: 'APK временно недоступен' },

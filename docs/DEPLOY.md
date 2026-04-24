@@ -360,6 +360,43 @@ ssh root@194.67.102.76 "cd /opt/gymquest && docker compose ps"
 
 ---
 
+## 14. Updating the APK
+
+The APK served at `/download` lives on the VDS at `/opt/gymquest/public/gymquest.apk`. It is **not** in git and **not** in the Docker image — it's bind-mounted read-only into the `app` container (see `docker-compose.yml`).
+
+### Building a new APK
+
+```bash
+cd mobile
+eas build --platform android --profile preview
+```
+
+Wait for the build, then download the `.apk` artefact locally (EAS gives you a URL to the artefact on completion).
+
+### Uploading
+
+```bash
+# From repo root
+scripts/upload-apk.sh ~/Downloads/build-xxx.apk
+```
+
+The script uses `root@194.67.102.76` by default. Pass a different target as the second arg if needed.
+
+Upload is atomic: the APK goes to `gymquest.apk.new` first and is then renamed into place via `mv` on the same filesystem. In-flight `/download` streams keep serving the old file descriptor cleanly.
+
+### Verifying
+
+```bash
+curl -I https://gymquest.ru/download
+# Expect: HTTP/1.1 200 OK
+#         Content-Disposition: attachment; filename="gymquest.apk"
+#         Content-Type: application/vnd.android.package-archive
+```
+
+When no APK is present, `/download` returns `503 { error: { code: "APK_UNAVAILABLE" } }` — that's the expected state in CI and dev.
+
+---
+
 ## See also
 
 - `README.md` — developer onboarding.

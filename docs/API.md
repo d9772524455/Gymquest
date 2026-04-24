@@ -48,6 +48,7 @@ headers.
 | `POST /api/clubs/register`                         | 1 hour | 5            |
 | `POST /api/members/register`                       | 1 hour | 20           |
 | `POST /api/clubs/login`, `POST /api/members/login` | 15 min | 10           |
+| `GET /download`                                    | 1 min  | 10           |
 | All other `/api/*`                                 | 15 min | 100          |
 
 ---
@@ -685,13 +686,40 @@ curl https://gymquest.ru/api/health
 
 Mounted on `/` (not `/api`). Source: `server/src/routes/static.js`.
 
-- `GET /` — landing HTML with links to `/app` and `/dashboard`.
+- `GET /` — landing HTML with links to `/app`, `/dashboard`, and `/download`.
 - `GET /app/*` — athlete SPA, served from the `client/` directory via
   `express.static`.
 - `GET /dashboard/*` — club dashboard SPA, served from the `dashboard/` directory.
 - `GET /shared/*` — shared CSS tokens, served from the `shared/` directory.
 
+### GET /download
+
+**Auth:** none · **Rate limit:** 10 / 1 min / IP (`apkDownload` preset)
+
+Stream the current Android APK to the browser as a file download.
+
+**Response 200:** Binary APK with:
+
+- `Content-Type: application/vnd.android.package-archive`
+- `Content-Disposition: attachment; filename="gymquest.apk"`
+
+**Response 503:** `{ "error": { "code": "APK_UNAVAILABLE", "message": "APK временно недоступен" } }` —
+APK file not yet uploaded to the VDS. Upload it via `scripts/upload-apk.sh`
+(see `docs/DEPLOY.md`).
+
+**Response 429:** Standard rate-limit response when more than 10 requests/min hit
+the route from the same IP.
+
+Note: the APK is **not** in git or the Docker image. It lives on the VDS at
+`/opt/gymquest/public/gymquest.apk`, bind-mounted read-only into the app container.
+
+**Example:**
+
+```bash
+curl -L -o gymquest.apk https://gymquest.ru/download
+```
+
 ---
 
-Total JSON endpoints: **25**, plus the top-level `GET /` landing page and three
-`express.static` mounts (`/app/*`, `/dashboard/*`, `/shared/*`).
+Total JSON endpoints: **25**, plus the top-level `GET /` landing page, `GET /download`
+(APK), and three `express.static` mounts (`/app/*`, `/dashboard/*`, `/shared/*`).

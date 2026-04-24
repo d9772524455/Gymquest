@@ -104,7 +104,7 @@ cd mobile && eas build --platform android --profile preview   # Android APK
 - **Module system:** CommonJS (`require`) on server. ES-modules (`import`) on client/dashboard. JSX (Babel/Expo) on mobile.
 - **Route handlers** wrap with `wrap(async (req, res) => {...})` from `middleware/errorHandler.js`.
 - **POST bodies** validated via `validateBody(schema)` from `middleware/validate.js`; schemas in `models/schemas.js`.
-- **Error shape:** `{ error: { code, message } }` enforced by errorHandler.
+- **Error shape:** `{ error: message }` (a flat string, from errorHandler). Note: a few manually-constructed error responses (e.g. `/download` 503) use the richer `{ error: { code, message } }` shape. Clients should handle both defensively.
 - **Logger:** `const logger = require('./logger')` — never `console.log` in server code (`no-console: warn` in ESLint).
 - **Tests:** `server/test/unit/*.test.js` using `node:test` + `node:assert/strict`. No test frameworks.
 
@@ -126,3 +126,5 @@ cd mobile && eas build --platform android --profile preview   # Android APK
 | API endpoint reference              | `docs/API.md`                  |
 | Deploy runbook + 443 nginx template | `docs/DEPLOY.md`               |
 | Client-facing architecture summary  | `docs/ARCHITECTURE.md`         |
+| APK served to users                 | `/opt/gymquest/public/gymquest.apk` (on VDS, bind-mounted ro) |
+| APK upload script                   | `scripts/upload-apk.sh`        |

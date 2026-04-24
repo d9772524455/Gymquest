@@ -1,4 +1,5 @@
 .btn{width:100%;padding:13px;border:none;border-radius:10px;cursor:pointer;font-family:'Orbitron';font-size:13px;font-weight:700;background:var(--acc);color:#fff;margin-bottom:12px}
+.btn-sec{background:transparent;color:var(--acc);border:1px solid var(--acc)}
 .card{background:var(--card);border:1px solid var(--brd);border-radius:14px;padding:16px;margin-bottom:10px}
 .tabs{display:flex;gap:4px;background:var(--card);border-radius:10px;padding:4px;margin-bottom:20px}
 .tab{flex:1;text-align:center;padding:10px 8px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;color:var(--mut);transition:.2s}

@@ -30,8 +30,13 @@ document.querySelector('[data-action="add-exercise"]').addEventListener('click',
 document.querySelector('[data-action="finish-workout"]').addEventListener('click', finishWorkout);
 document.querySelector('[data-action="cancel-workout"]').addEventListener('click', cancelWorkout);
 
-// --- Profile logout ---
-document.querySelector('[data-action="logout"]').addEventListener('click', logout);
+// --- Logout (header + profile tab) ---
+document.querySelectorAll('[data-action="logout"]').forEach((el) => {
+  el.addEventListener('click', logout);
+  el.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); logout(); }
+  });
+});
 
 // --- Library modal ---
 document.getElementById('lib-m').addEventListener('click', (e) => {

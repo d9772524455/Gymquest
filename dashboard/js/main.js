@@ -72,8 +72,13 @@ document.querySelector('[data-action="copy-club-id"]').addEventListener('click',
   showToast(ok ? 'Club ID скопирован' : 'Не удалось скопировать', ok ? '#22c55e' : '#ef4444');
 });
 
-// Logout
-document.querySelector('[data-action="dashboard-logout"]').addEventListener('click', dLogout);
+// Logout (header + footer link)
+document.querySelectorAll('[data-action="dashboard-logout"]').forEach((el) => {
+  el.addEventListener('click', dLogout);
+  el.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); dLogout(); }
+  });
+});
 
 // Boot
 if (getState().dToken) enterDashboard();
